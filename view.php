@@ -143,7 +143,7 @@ if (!$gallery) {
     if (!$mediagallery->is_read_only()) {
         if ($mediagallery->maxgalleries == 0 || count($mediagallery->get_my_galleries()) < $mediagallery->maxgalleries) {
             echo html_writer::link(new moodle_url('/mod/mediagallery/gallery.php', array('m' => $mediagallery->id)),
-                get_string('addagallery', 'mediagallery'));
+                get_string('addagallery', 'mediagallery'),array('class'=>'galleryprompt'));
         } else {
             echo html_writer::span(get_string('maxgalleriesreached', 'mediagallery'));
         }
