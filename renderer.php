@@ -72,7 +72,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
     }
 
     public function gallery_list_item($gallery) {
-        global $COURSE;
+        global $COURSE, $DB;
         $o = html_writer::start_tag('div',
             array('class' => 'gallery_list_item', 'data-title' => $gallery->name, 'data-id' => $gallery->id));
 
@@ -86,11 +86,20 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
 
         $o .= html_writer::start_tag('div', array('class' => 'controls'));
 
+        /*
         $this->page->requires->yui_module('moodle-mod_mediagallery-base', 'M.mod_mediagallery.base.add_gallery_info_modal',
             array($COURSE->id, $gallery->get_metainfo()), null, true);
         $url = new moodle_url('/mod/mediagallery/gallery.php', array('g' => $gallery->id, 'action' => 'info'));
         $o .= $this->output->action_icon($url, new pix_icon('i/info', get_string('information', 'mediagallery')), null,
             array('class' => 'action-icon info'));
+          */  
+        
+            
+        $gallerymeta = $gallery->get_metainfo();
+        $linkurl = new moodle_url('/user/profile.php', array('id' => $gallerymeta->userid));
+        
+        if ($user = $DB->get_record('user', array('id' => $gallerymeta->userid), 'id, firstname, lastname')) $o .= html_writer::tag('div', $user->firstname.' '.$user->lastname, array('class' => 'gallery-username'));
+         
 
         if ($gallery->user_can_edit()) {
             $url = new moodle_url('/mod/mediagallery/gallery.php', array('g' => $gallery->id, 'action' => 'delete'));
@@ -129,9 +138,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             $pix = 'i/cross_red_big';
         }
         $indicator = html_writer::empty_tag('img', array('src' => $this->output->pix_url($pix)));
-        $o .= html_writer::tag('div', $indicator, array('class' => 'moralrights'.$class));
-        $link = html_writer::link('#', get_string('sample', 'mediagallery'), array('id' => 'mg_sample'));
-        $o .= html_writer::tag('div', $link, array('class' => 'moralrights_title'));
+        //$o .= html_writer::tag('div', $indicator, array('class' => 'moralrights'.$class));
+        //$link = html_writer::link('#', get_string('sample', 'mediagallery'), array('id' => 'mg_sample'));
+        //$o .= html_writer::tag('div', $link, array('class' => 'moralrights_title'));
         if ($editing) {
             $o .= $this->gallery_editing_page($gallery);
         } else {
@@ -359,6 +368,12 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
                     array('class' => 'action-icon info')),
                 array('class' => 'info')
             );
+            
+            $itemmeta = $item->get_metainfo();
+            
+            if (isset($itemmeta->username)) $itemframe .= html_writer::tag('div', $itemmeta->username, array('class' => 'item-username'));
+            else $itemframe .= html_writer::tag('div', 'nothing', array('class' => 'item-username'));
+                
             $itemframe = html_writer::tag('div', $itemframe, array('class' => 'item-wrapper'));
 
             $o .= html_writer::tag('div', $itemframe, array('class' => 'item grid_item', 'data-id' => $item->id,
