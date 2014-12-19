@@ -80,6 +80,7 @@ $string['filename'] = 'File name';
 $string['filesize'] = 'File size';
 $string['foundxresults'] = 'Found {$a} result(s):';
 $string['gallery'] = 'Gallery';
+$string['gallerycomments'] = 'Gallery comments';
 $string['galleryname'] = 'Gallery name';
 $string['gallerythumbnail'] = 'Use as thumbnail';
 $string['gallerythumbnail_help'] = 'If selected, the thumbnail for this item is used as the thumbnail for the gallery.';

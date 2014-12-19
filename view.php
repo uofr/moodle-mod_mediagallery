@@ -161,6 +161,7 @@ if (!$gallery) {
             $cmtopt->component = 'mod_mediagallery';
             $cmtopt->cm = $cm;
             $cmtopt->course = $course;
+            $cmtopt->linktext = get_string('gallerycomments', 'mediagallery');
             $options['comments'] = new comment($cmtopt);
             comment::init();
         }
