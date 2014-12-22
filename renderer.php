@@ -130,6 +130,8 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      *                       'offset' int Used for browsing through pages of items.
      */
     public function gallery_page(gallery $gallery, $editing = false, $options = array()) {
+        global $DB;
+        
         $o = $this->gallery_heading($gallery);
         $class = '';
         $pix = 't/check';
@@ -141,6 +143,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         //$o .= html_writer::tag('div', $indicator, array('class' => 'moralrights'.$class));
         //$link = html_writer::link('#', get_string('sample', 'mediagallery'), array('id' => 'mg_sample'));
         //$o .= html_writer::tag('div', $link, array('class' => 'moralrights_title'));
+        
+        if ($user = $DB->get_record('user', array('id' => $gallery->userid), 'id, firstname, lastname')) $o .= html_writer::tag('div', $user->firstname.' '.$user->lastname, array('class' => 'gallery-ownername'));
+                
         if ($editing) {
             $o .= $this->gallery_editing_page($gallery);
         } else {
@@ -369,10 +374,10 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
                 array('class' => 'info')
             );
             
-            $itemmeta = $item->get_metainfo();
+            //$itemmeta = $item->get_metainfo();
             
-            if (isset($itemmeta->username)) $itemframe .= html_writer::tag('div', $itemmeta->username, array('class' => 'item-username'));
-            else $itemframe .= html_writer::tag('div', 'nothing', array('class' => 'item-username'));
+            //if (isset($itemmeta->username)) $itemframe .= html_writer::tag('div', $itemmeta->username.'XX', array('class' => 'item-username'));
+            //else $itemframe .= html_writer::tag('div', 'nothing', array('class' => 'item-username'));
                 
             $itemframe = html_writer::tag('div', $itemframe, array('class' => 'item-wrapper'));
 
