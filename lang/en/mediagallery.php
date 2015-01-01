@@ -153,6 +153,7 @@ $string['publisher_help'] = 'The publisher (if any) of the work.';
 $string['readonlyfrom'] = 'Read only from';
 $string['readonlyto'] = 'Read only to';
 $string['restrictavailableinfo'] = 'To restrict the dates this activity is available between, use the Restrict access section below.';
+$string['returntocollection'] = 'Return to the main collection page';
 $string['sample'] = 'Sample';
 $string['search'] = 'Search';
 $string['search_help'] = 'Enter the keywords you want to search for.';

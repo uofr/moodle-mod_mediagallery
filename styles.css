@@ -77,7 +77,7 @@
 }
 
 .path-mod-mediagallery div.grid_item .caption {
-    text-align: center;
+    /*text-align: center;*/
     height: 18px;
 }
 
@@ -91,7 +91,7 @@
 }
 
 .path-mod-mediagallery div.grid_item div.item-thumb {
-    height: 250px;
+    /*height: 250px;*/
 }
 
 .path-mod-mediagallery .heading {
@@ -116,6 +116,12 @@
 .path-mod-mediagallery .moralrights_title {
     float: right;
     margin: 5px 5px 0 0;
+}
+
+.path-mod-mediagallery .gallery-ownername {
+    clear: both;
+    font-size: 1.5em;
+    margin-bottom: 1.5em;
 }
 
 .path-mod-mediagallery .actions {
@@ -180,7 +186,7 @@
 }
 
 .path-mod-mediagallery .metainfo div.value {
-    float: left;
+    /*float: left;*/
 }
 
 .path-mod-mediagallery .mform,

@@ -98,6 +98,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         $gallerymeta = $gallery->get_metainfo();
         $linkurl = new moodle_url('/user/profile.php', array('id' => $gallerymeta->userid));
         
+        
+        
+        
         if ($user = $DB->get_record('user', array('id' => $gallerymeta->userid), 'id, firstname, lastname')) $o .= html_writer::tag('div', $user->firstname.' '.$user->lastname, array('class' => 'gallery-username'));
          
 
@@ -107,7 +110,8 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
                 array('class' => 'action-icon delete'));
 
             $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $gallery->id, 'editing' => 1));
-            $o .= $this->output->action_icon($url, new pix_icon('t/edit', get_string('edit')));
+            $o .= $this->output->action_icon($url, new pix_icon('t/edit', get_string('edit')), null,
+                array('class' => 'action-icon edit'));
         }
         $o .= html_writer::end_tag('div');
 
@@ -116,8 +120,15 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
     }
 
     public function gallery_heading(gallery $gallery) {
-        $name = format_string($gallery->get_collection()->name).' '.$this->output->rarrow().' '.format_string($gallery->name);
-        $head = $this->output->heading($name);
+        
+        global $cm;
+        
+        $linkurl = new moodle_url('/mod/mediagallery/view.php', array('id' => $cm->id));
+        
+        $collection_name = html_writer::link($linkurl, format_string($gallery->get_collection()->name));
+        
+        $gallery_name = format_string($gallery->name);
+        $head = $this->output->heading($collection_name,4).$this->output->heading($gallery_name);
         return html_writer::div($head, 'heading');
     }
 
@@ -130,7 +141,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      *                       'offset' int Used for browsing through pages of items.
      */
     public function gallery_page(gallery $gallery, $editing = false, $options = array()) {
-        global $DB;
+        global $DB, $CFG, $cm;
         
         $o = $this->gallery_heading($gallery);
         $class = '';
@@ -144,7 +155,14 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         //$link = html_writer::link('#', get_string('sample', 'mediagallery'), array('id' => 'mg_sample'));
         //$o .= html_writer::tag('div', $link, array('class' => 'moralrights_title'));
         
-        if ($user = $DB->get_record('user', array('id' => $gallery->userid), 'id, firstname, lastname')) $o .= html_writer::tag('div', $user->firstname.' '.$user->lastname, array('class' => 'gallery-ownername'));
+        $linkurl = new moodle_url('/user/profile.php', array('id' => $gallery->userid));
+    
+        if ($user = $DB->get_record('user', array('id' => $gallery->userid), 'id, firstname, lastname')) {
+            
+            
+        }$o .= html_writer::tag('div', html_writer::link($linkurl, html_writer::empty_tag('img', array('src' => $CFG->wwwroot.'/user/pix.php/'.$gallery->userid.'/f2.jpg','class'=>'img-rounded','height'=>23,'width'=>23, 'title' => 'Profile picture of '.$user->firstname.' '.$user->lastname, 'alt' => 'Profile picture of '.$user->firstname.' '.$user->lastname )).' '.$user->firstname.' '.$user->lastname), array('class' => 'gallery-ownername'));
+
+
                 
         if ($editing) {
             $o .= $this->gallery_editing_page($gallery);
@@ -164,6 +182,10 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
                 $o .= $this->list_other_items($otheritems);
             }
         }
+        
+        $collectionurl = new moodle_url('/mod/mediagallery/view.php', array('id' => $cm->id));
+        $o .= html_writer::div(html_writer::link($collectionurl, '<i class="fa fa-arrow-left"></i> '.get_string('returntocollection', 'mediagallery')), 'collection-link');
+        
         if (!empty($options['comments']) && !$editing) {
             $o .= html_writer::div($options['comments']->output(true), 'commentarea');
         }
@@ -198,15 +220,15 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
 
         $maxitems = $gallery->get_collection()->maxitems;
         if ($maxitems == 0 || count($gallery->get_items()) < $maxitems) {
-            $actions[] = html_writer::link($additemurl, get_string('addanitem', 'mediagallery'));
-            $actions[] = html_writer::link($addbulkitemurl, get_string('addbulkitems', 'mediagallery'));
+            $actions[] = html_writer::link($additemurl, '<i class="fa fa-plus"></i> '.get_string('addanitem', 'mediagallery'));
+            $actions[] = html_writer::link($addbulkitemurl, '<i class="fa fa-files-o"></i> '.get_string('addbulkitems', 'mediagallery'));
         } else {
             $actions[] = html_writer::span(get_string('maxitemsreached', 'mediagallery'));
         }
-        $actions[] = html_writer::link($viewurl, get_string('viewgallery', 'mediagallery'));
-        $actions[] = html_writer::link($editurl, get_string('editgallery', 'mediagallery'));
-        $actions[] = html_writer::link($exporturl, get_string('exportgallery', 'mediagallery'));
-        $o .= implode(' &bull; ', $actions);
+        $actions[] = html_writer::link($viewurl, '<i class="fa fa-picture-o"></i> '.get_string('viewgallery', 'mediagallery'));
+        $actions[] = html_writer::link($editurl, '<i class="fa fa-cogs"></i> '.get_string('editgallery', 'mediagallery'));
+        $actions[] = html_writer::link($exporturl, '<i class="fa fa-floppy-o"></i> '.get_string('exportgallery', 'mediagallery'));
+        $o .= '<ul><li>'.implode('</li><li>', $actions).'</li></ul>';
 
         $o .= html_writer::end_tag('div');
 
