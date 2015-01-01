@@ -100,7 +100,6 @@ M.mod_mediagallery.base = {
             [M.str.moodle.username, data.username],
             [M.str.moodle.group, data.groupname],
             [M.str.moodle.description, data.description],
-            [M.str.mod_mediagallery.moralrights, data.moralrights == "1" ? M.str.moodle.yes : M.str.moodle.no],
             [M.str.mod_mediagallery.originalauthor, data.originalauthor],
             [M.str.mod_mediagallery.productiondate, data.productiondateformatted],
             [M.str.mod_mediagallery.medium, data.medium],

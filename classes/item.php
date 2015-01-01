@@ -456,6 +456,7 @@ class item extends base {
         if (!has_capability('moodle/user:viewhiddendetails', $this->get_context())) {
             $info->username = null;
         }
+        if ($info->moralrights) unset($info->moralrights);
         return $info;
     }
 
@@ -470,7 +471,7 @@ class item extends base {
             'medium' => get_string('medium', 'mod_mediagallery'),
             'publisher' => get_string('publisher', 'mod_mediagallery'),
             'collection' => get_string('collection', 'mod_mediagallery'),
-            'moralrightsformatted' => get_string('moralrights', 'mod_mediagallery'),
+            //'moralrightsformatted' => get_string('moralrights', 'mod_mediagallery'),
         );
 
         $info = $this->get_socialinfo();
@@ -485,7 +486,7 @@ class item extends base {
         if ($data->productiondate > 0) {
             $data->productiondateformatted = userdate($data->productiondate, get_string('strftimedaydate', 'langconfig'));
         }
-        $data->moralrightsformatted = $data->moralrights ? get_string('yes') : get_string('no');
+        //$data->moralrightsformatted = $data->moralrights ? get_string('yes') : get_string('no');
         foreach ($displayfields as $key => $displayname) {
             $info->fields[] = array(
                 'displayname' => $displayname,

@@ -314,9 +314,14 @@ function mediagallery_generate_search_sql($parsetree) {
 }
 
 function mediagallery_add_metainfo_fields(&$mform) {
-    $mform->addElement('selectyesno', 'moralrights', get_string('moralrights', 'mediagallery'));
+    /*$mform->addElement('selectyesno', 'moralrights', get_string('moralrights', 'mediagallery'));
     $mform->addHelpButton('moralrights', 'moralrights', 'mediagallery');
     $mform->setDefault('moralrights', 1);
+    */
+    $mform->addElement('hidden', 'moralrights');
+    //$mform->addHelpButton('moralrights', 'moralrights', 'mediagallery');
+    $mform->setDefault('moralrights', 0);
+    
 
     $mform->addElement('text', 'originalauthor', get_string('originalauthor', 'mediagallery'));
     $mform->setType('originalauthor', PARAM_TEXT);
