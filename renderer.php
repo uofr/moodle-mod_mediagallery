@@ -225,9 +225,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         } else {
             $actions[] = html_writer::span(get_string('maxitemsreached', 'mediagallery'));
         }
-        $actions[] = html_writer::link($viewurl, '<i class="fa fa-picture-o"></i> '.get_string('viewgallery', 'mediagallery'));
+        $actions[] = html_writer::link($viewurl, '<i class="fa fa-picture-o"></i> '.get_string('viewgallery', 'mediagallery'),array('class'=>'view_action'));
         $actions[] = html_writer::link($editurl, '<i class="fa fa-cogs"></i> '.get_string('editgallery', 'mediagallery'));
-        $actions[] = html_writer::link($exporturl, '<i class="fa fa-floppy-o"></i> '.get_string('exportgallery', 'mediagallery'));
+        $actions[] = html_writer::link($exporturl, '<i class="fa fa-floppy-o"></i> '.get_string('exportgallery', 'mediagallery'),array('class'=>'export_action'));
         $o .= '<ul><li>'.implode('</li><li>', $actions).'</li></ul>';
 
         $o .= html_writer::end_tag('div');

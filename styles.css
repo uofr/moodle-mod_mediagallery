@@ -78,6 +78,7 @@
 
 .path-mod-mediagallery div.grid_item .caption {
     /*text-align: center;*/
+    padding: 0.5em;
     height: 18px;
 }
 
@@ -126,6 +127,12 @@
 
 .path-mod-mediagallery .actions {
     float: left;
+}
+
+.path-mod-mediagallery .actions li a.view_action,
+.path-mod-mediagallery .actions li a.export_action {
+    display: inline-block;
+    margin-top: 1em;
 }
 
 .path-mod-mediagallery .lb-outerContainer {
@@ -419,8 +426,9 @@ body.mediaboxactive .gallery .mediaplugin object {
     width: 300px;
     height: 100%;
     background-color: #222;
-    overflow: visible;
     color: #FFF;
+    padding: 0 1em 0 0.5em; 
+    overflow: scroll;
 }
 
 #mediabox-navbar {
@@ -454,8 +462,6 @@ body.mediaboxactive .gallery .mediaplugin object {
     -ms-filter: "alpha(opacity=100)";
 }
 
-
-
 #mediabox-navbar .navitem img {
     width: 58px;
 }
@@ -466,18 +472,22 @@ body.mediaboxactive .gallery .mediaplugin object {
 
 #mediabox.sidebarhidden #mediabox-sidebar {
     width: 0px;
+    overflow: visible;
+    padding: 0;
 }
-
 #mediabox-metainfo,
 #mediabox-social,
 #mediabox-comments {
     float: left;
     margin: 5px;
-    width: 100%;
 }
 
 #mediabox-comments .mdl-left {
     width: 282px;
+}
+
+#mediabox-comments .comment-list {
+    font-size: 12px;
 }
 
 #mediabox-metainfo .metafield {
@@ -502,15 +512,22 @@ body.mediaboxactive .gallery .mediaplugin object {
 
 #mediabox-sidebar-actions img {
     width: 24px;
-    margin-right: 5px;
+    margin: 0 0.25em;
+    padding: 0 0.25em;
     cursor: pointer;
+}
+
+
+#mediabox.sidebarhidden #mediabox-sidebar-actions img  {
+    margin: 0.25em 0;
+    padding: 0.25em 0;
 }
 
 #mediabox-sidebartoggle,
 #mediabox.sidebarhidden #mediabox-sidebar-actions {
     position: absolute;
     top: 10px;
-    left: -32px;
+    left: -40px;
     background-color: #222;
     padding: 4px;
     -webkit-border-top-left-radius: 4px;
@@ -520,6 +537,7 @@ body.mediaboxactive .gallery .mediaplugin object {
     border-top-left-radius: 4px;
     border-bottom-left-radius: 4px;
 }
+
 
 #mediabox.sidebarhidden #mediabox-sidebar-actions {
     top: 50px;
