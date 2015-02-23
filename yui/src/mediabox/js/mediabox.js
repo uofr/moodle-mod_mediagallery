@@ -35,7 +35,7 @@ Y.extend(MEDIABOX, Y.Base, {
 
         var template = '<div id="mediabox"><div id="mediabox-content-wrap"><div id="mediabox-content"></div></div>';
         template += '<div id="mediabox-sidebar"><div id="mediabox-sidebar-actions">'+actions+'</div>';
-        template += '<div id="mediabox-metainfo"></div><hr/><div id="mediabox-social"></div><hr/><div id="mediabox-comments"></div>';
+        template += '<div id="mediabox-metascroll"><div id="mediabox-metainfo"></div><hr/><div id="mediabox-social"></div><hr/><div id="mediabox-comments"></div></div>';
         template += '</div><div id="mediabox-navbar"><div id="mediabox-navbar-container"></div></div></div><div id="mediabox-overlay"></div>';
         Y.Node.create(template).appendTo('body');
         this.overlay = Y.one('#mediabox-overlay');

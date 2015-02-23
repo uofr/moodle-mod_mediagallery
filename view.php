@@ -107,7 +107,7 @@ $PAGE->requires->jquery();
 
 $jsstrs = array('confirmgallerydelete', 'confirmitemdelete', 'deletegallery',
     'deleteitem', 'like', 'likedby', 'comments', 'unlike', 'others', 'other',
-    'addsamplegallery', 'mediagallery', 'information', 'caption',
+    'mediagallery', 'information', 'caption',
     'moralrights', 'originalauthor', 'productiondate', 'medium', 'collection',
     'publisher', 'galleryname', 'creator', 'filename', 'filesize', 'datecreated',
     'viewfullsize', 'you', 'togglesidebar', 'close', 'togglefullscreen');
@@ -151,9 +151,9 @@ if (!$gallery) {
     if (!$mediagallery->is_read_only()) {
         if ($mediagallery->maxgalleries == 0 || count($mediagallery->get_my_galleries()) < $mediagallery->maxgalleries) {
             echo html_writer::link(new moodle_url('/mod/mediagallery/gallery.php', array('m' => $mediagallery->id)),
-                get_string('addagallery', 'mediagallery'));
+                get_string('addagallery', 'mediagallery'),array('class'=>'galleryprompt'));
         } else {
-            echo html_writer::span(get_string('maxgalleriesreached', 'mediagallery'));
+            echo html_writer::div(get_string('maxgalleriesreached', 'mediagallery'),'',array('class'=>'alert alert-info clear','style'=>'display: inline-block'));
         }
     }
 } else {
@@ -176,6 +176,7 @@ if (!$gallery) {
             $cmtopt->component = 'mod_mediagallery';
             $cmtopt->cm = $cm;
             $cmtopt->course = $course;
+            $cmtopt->linktext = get_string('gallerycomments', 'mediagallery');
             $options['comments'] = new comment($cmtopt);
             comment::init();
         }
