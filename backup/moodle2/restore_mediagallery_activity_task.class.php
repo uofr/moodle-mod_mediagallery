@@ -102,4 +102,27 @@ class restore_mediagallery_activity_task extends restore_activity_task {
 
         return $rules;
     }
+    
+    /**
+     * Given a comment area, return the itemname that contains the itemid mappings.
+     *
+     * @param string $commentarea
+     * @return string
+     */
+    public function get_comment_mapping_itemname($commentarea) {
+        //die('comment:'.print_r($commentarea,1));
+        switch ($commentarea) {
+            case 'gallery':
+                $itemname = 'mediagallery_gallery';
+                break;
+            case 'item':
+                    $itemname = 'mediagallery_item';
+                    break;
+            default:
+                $itemname = parent::get_comment_mapping_itemname($commentarea);
+                break;
+        }
+
+        return $itemname;
+    }
 }
