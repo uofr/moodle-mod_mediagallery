@@ -77,32 +77,13 @@ class gallery extends base {
         return true;
     }
 
-    public static function create(\stdClass $data) {
-        $result = parent::create($data);
-
-        $params = array(
-            'context' => $result->get_collection()->context,
-            'objectid' => $result->id,
-        );
-        $event = \mod_mediagallery\event\gallery_created::create($params);
-        $event->add_record_snapshot('mediagallery_gallery', $result->get_record());
-        $event->trigger();
-
-        return $result;
-    }
-
     public function delete() {
         global $DB;
 
         $coll = $this->get_collection();
 
-        $params = array(
-            'context' => $coll->context,
-            'objectid' => $this->id,
-        );
-        $event = \mod_mediagallery\event\gallery_deleted::create($params);
-        $event->add_record_snapshot('mediagallery_gallery', $this->record);
-        $event->trigger();
+        add_to_log($coll->cm->course, 'mediagallery', 'delete gallery',
+            "view.php?id={$coll->cm->id}", $this->record->name, $coll->cm->id);
 
         // Delete all items and then the gallery.
         item::delete_all_by_gallery($this->record->id);
