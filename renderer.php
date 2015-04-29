@@ -25,6 +25,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+use \mod_mediagallery\collection;
 use \mod_mediagallery\gallery;
 use \mod_mediagallery\item;
 
@@ -68,11 +69,19 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             $o .= html_writer::end_tag('div');
         }
         $o .= html_writer::end_tag('div');
+
+        $tags = $mediagallery->get_tags();
+        if (!empty($tags)) {
+            $tagtitle = html_writer::span(get_string('tags', 'mediagallery').': ', 'tagheading');
+            $o .= html_writer::div($tagtitle.$tags, 'taglist');
+        }
+        $o .= html_writer::div('', 'clearfix');
+
         return $o;
     }
 
     public function gallery_list_item($gallery) {
-        global $COURSE, $DB;
+        global $COURSE, $DB, $USER;
         $o = html_writer::start_tag('div',
             array('class' => 'gallery_list_item', 'data-title' => $gallery->name, 'data-id' => $gallery->id));
 
@@ -108,7 +117,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             $url = new moodle_url('/mod/mediagallery/gallery.php', array('g' => $gallery->id, 'action' => 'delete'));
             $o .= $this->output->action_icon($url, new pix_icon('t/delete', get_string('delete')), null,
                 array('class' => 'action-icon delete'));
+        }
 
+        if ($gallery->user_can_edit()) {
             $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $gallery->id, 'editing' => 1));
             $o .= $this->output->action_icon($url, new pix_icon('t/edit', get_string('edit')), null,
                 array('class' => 'action-icon edit'));
@@ -132,6 +143,19 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         return html_writer::div($head, 'heading');
     }
 
+    private function focus_selector($currentfocus) {
+        $options = array(
+            MEDIAGALLERY_TYPE_IMAGE => get_string('typeimage', 'mediagallery'),
+            MEDIAGALLERY_TYPE_VIDEO => get_string('typevideo', 'mediagallery'),
+            MEDIAGALLERY_TYPE_AUDIO => get_string('typeaudio', 'mediagallery'),
+        );
+
+        $select = new single_select($this->page->url, 'focus', $options, $currentfocus, array());
+        $select->label = get_string('galleryfocus', 'mod_mediagallery');
+        $select->method = 'get';
+        return html_writer::div($this->output->render($select), 'focus_selector');
+    }
+
     /**
      * Render a specific gallery.
      *
@@ -144,24 +168,32 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         global $DB, $CFG, $cm;
         
         $o = $this->gallery_heading($gallery);
+
         $class = '';
         $pix = 't/check';
         if (!$gallery->moral_rights_asserted()) {
             $class = ' no';
-            $pix = 'i/cross_red_big';
+            $pix = 'i/invalid';
         }
         $indicator = html_writer::empty_tag('img', array('src' => $this->output->pix_url($pix)));
         //$o .= html_writer::tag('div', $indicator, array('class' => 'moralrights'.$class));
         //$link = html_writer::link('#', get_string('sample', 'mediagallery'), array('id' => 'mg_sample'));
         //$o .= html_writer::tag('div', $link, array('class' => 'moralrights_title'));
-        
+
         $linkurl = new moodle_url('/user/profile.php', array('id' => $gallery->userid));
     
         if ($user = $DB->get_record('user', array('id' => $gallery->userid), 'id, firstname, lastname')) {
             
             
         }$o .= html_writer::tag('div', html_writer::link($linkurl, html_writer::empty_tag('img', array('src' => $CFG->wwwroot.'/user/pix.php/'.$gallery->userid.'/f2.jpg','class'=>'img-rounded','height'=>23,'width'=>23, 'title' => 'Profile picture of '.$user->firstname.' '.$user->lastname, 'alt' => 'Profile picture of '.$user->firstname.' '.$user->lastname )).' '.$user->firstname.' '.$user->lastname), array('class' => 'gallery-ownername'));
-
+		
+		if ($gallery->mode != 'youtube' && !$editing) {
+            $currentfocus = $gallery->type();
+            if (isset($options['focus']) && !is_null($options['focus'])) {
+                $currentfocus = $options['focus'];
+            }
+            $o .= $this->focus_selector($currentfocus);
+        }
 
                 
         if ($editing) {
@@ -171,7 +203,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             $items = $gallery->get_items();
             if (empty($items)) {
                 $o .= get_string('noitemsadded', 'mediagallery');
-            } else if ($gallery->galleryview == MEDIAGALLERY_VIEW_GRID) {
+            } else if ($gallery->get_display_settings()->galleryview == MEDIAGALLERY_VIEW_GRID) {
                 $o .= $this->view_grid($gallery, $options);
             } else {
                 $o .= $this->view_carousel($gallery, $options);
@@ -179,13 +211,27 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             $o .= html_writer::end_tag('div');
             if ($otheritems = $gallery->get_items_by_type(false)) {
                 $o .= $this->output->heading(get_string('otherfiles', 'mediagallery'), 3);
-                $o .= $this->list_other_items($otheritems);
+                $o .= $this->list_other_items($otheritems, $gallery);
             }
         }
-        
-        $collectionurl = new moodle_url('/mod/mediagallery/view.php', array('id' => $cm->id));
+
+        $tags = $gallery->get_tags();
+        if (!empty($tags)) {
+            $tagtitle = html_writer::span(get_string('tags', 'mediagallery').': ', 'tagheading');
+            $o .= html_writer::div($tagtitle.$tags, 'taglist');
+        }
+
+        if ($editing) {
+            $o .= $this->gallery_editing_actions($gallery);
+            if ($gallery->mode == 'thebox' && !empty($options['syncstamp'])) {
+                $o .= $this->last_synced($options['syncstamp']);
+            }
+
+        }
+
+		$collectionurl = new moodle_url('/mod/mediagallery/view.php', array('id' => $cm->id));
         $o .= html_writer::div(html_writer::link($collectionurl, '<i class="fa fa-arrow-left"></i> '.get_string('returntocollection', 'mediagallery')), 'collection-link');
-        
+
         if (!empty($options['comments']) && !$editing) {
             $o .= html_writer::div($options['comments']->output(true), 'commentarea');
         }
@@ -194,6 +240,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             $exporturl = new moodle_url('/mod/mediagallery/export.php', array('g' => $gallery->id));
             $o .= html_writer::div(html_writer::link($exporturl, get_string('exportgallery', 'mediagallery')), 'exportlink');
         }
+        $o .= html_writer::div('', 'clearfix');
         return $o;
     }
 
@@ -205,11 +252,55 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
     public function gallery_editing_page(gallery $gallery) {
         $o = html_writer::start_tag('div', array('class' => 'gallery_items editing'));
         foreach ($gallery->get_items() as $item) {
-            $o .= $this->item_editing($item);
+            $o .= $this->item_editing($item, $gallery);
         }
         $o .= html_writer::end_tag('div');
+        return $o;
+    }
 
-        $o .= html_writer::start_tag('div', array('class' => 'actions'));
+    public function collection_editing_actions(collection $collection, $maxnotreached = false) {
+        global $USER;
+
+        $links = array();
+
+        $normallycanadd = true;
+        if ($collection->mode == 'thebox' && $collection->colltype == 'instructor' && !$collection->is_thebox_creator_or_agent()) {
+            $normallycanadd = false;
+        }
+
+        if ($normallycanadd) {
+            if ($maxnotreached) {
+                $links[] = html_writer::link(new moodle_url('/mod/mediagallery/gallery.php', array('m' => $collection->id)),
+                            get_string('addagallery', 'mediagallery'));
+            } else {
+                $links[] = html_writer::span(get_string('maxgalleriesreached', 'mediagallery'));
+            }
+        }
+
+        $content = implode(' &bull; ', $links);
+
+        $o = html_writer::div($content, 'actions collection');
+        $o .= html_writer::div('', 'clearfix');
+        return $o;
+    }
+
+    private function sync_link() {
+        $url = $this->page->url;
+        $url->param('sync', true);
+        return html_writer::link($url, get_string('syncwiththebox', 'mediagallery'));
+    }
+
+    public function last_synced($timestamp) {
+        if (!$timestamp) {
+            return '';
+        }
+        $lastcompleted = get_string('synclastcompleted', 'mediagallery').' - ';
+        $lastcompleted .= userdate($timestamp);
+        return html_writer::div($lastcompleted, 'clearfix lastsync');
+    }
+
+    public function gallery_editing_actions(gallery $gallery) {
+        $o = html_writer::start_tag('div', array('class' => 'actions'));
 
         $additemurl = new moodle_url('/mod/mediagallery/item.php', array('g' => $gallery->id));
         $addbulkitemurl = new moodle_url('/mod/mediagallery/item.php', array('g' => $gallery->id, 'bulk' => 1));
@@ -218,16 +309,27 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         $exporturl = new moodle_url('/mod/mediagallery/export.php', array('g' => $gallery->id));
         $actions = array();
 
-        $maxitems = $gallery->get_collection()->maxitems;
-        if ($maxitems == 0 || count($gallery->get_items()) < $maxitems) {
-            $actions[] = html_writer::link($additemurl, '<i class="fa fa-plus"></i> '.get_string('addanitem', 'mediagallery'));
-            $actions[] = html_writer::link($addbulkitemurl, '<i class="fa fa-files-o"></i> '.get_string('addbulkitems', 'mediagallery'));
-        } else {
-            $actions[] = html_writer::span(get_string('maxitemsreached', 'mediagallery'));
+        if ($gallery->mode != 'thebox' || $gallery->is_thebox_creator_or_agent()) {
+            $maxitems = $gallery->get_collection()->maxitems;
+            if ($maxitems == 0 || count($gallery->get_items()) < $maxitems) {
+                $actions[] = html_writer::link($additemurl, '<i class="fa fa-plus"></i> '.get_string('addanitem', 'mediagallery'));
+                if ($gallery->mode != 'youtube') {
+                    $actions[] = html_writer::link($addbulkitemurl, '<i class="fa fa-files-o"></i> '.get_string('addbulkitems', 'mediagallery'));
+                }
+            } else {
+                $actions[] = html_writer::span(get_string('maxitemsreached', 'mediagallery'));
+            }
         }
         $actions[] = html_writer::link($viewurl, '<i class="fa fa-picture-o"></i> '.get_string('viewgallery', 'mediagallery'),array('class'=>'view_action'));
         $actions[] = html_writer::link($editurl, '<i class="fa fa-cogs"></i> '.get_string('editgallery', 'mediagallery'));
-        $actions[] = html_writer::link($exporturl, '<i class="fa fa-floppy-o"></i> '.get_string('exportgallery', 'mediagallery'),array('class'=>'export_action'));
+        if ($gallery->mode == 'standard') {
+            $actions[] = html_writer::link($exporturl, '<i class="fa fa-floppy-o"></i> '.get_string('exportgallery', 'mediagallery'),array('class'=>'export_action'));
+        }
+
+        if ($gallery->mode == 'thebox') {
+            $actions[] = $this->sync_link();
+        }
+
         $o .= '<ul><li>'.implode('</li><li>', $actions).'</li></ul>';
 
         $o .= html_writer::end_tag('div');
@@ -235,7 +337,8 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         return $o;
     }
 
-    public function item_editing(item $item) {
+    public function item_editing(item $item, $gallery) {
+        global $USER;
         $o = html_writer::start_tag('div', array('class' => 'item', 'data-id' => $item->id, 'data-title' => $item->caption));
 
         $img = html_writer::empty_tag('img', array('src' => $item->get_image_url_by_type('thumbnail')));
@@ -254,11 +357,17 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             array('class' => 'action-icon info'));
 
         $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id, 'action' => 'delete'));
-        $o .= $this->output->action_icon($url, new pix_icon('t/delete', get_string('delete')), null,
-            array('class' => 'action-icon delete'));
+        $isowner = $item->is_thebox_creator_or_agent() ? ' owner' : '';
+        if ($gallery->mode != 'thebox' || $gallery->is_thebox_creator_or_agent()) {
+            $o .= $this->output->action_icon($url, new pix_icon('t/delete', get_string('delete')), null,
+                array('class' => 'action-icon delete'.$isowner));
+        }
 
-        $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id));
-        $o .= $this->output->action_icon($url, new pix_icon('t/edit', get_string('edit')));
+        if ($item->user_can_edit() || $gallery->is_thebox_creator_or_agent() || $gallery->get_collection()->is_thebox_creator_or_agent()) {
+            $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id));
+            $o .= $this->output->action_icon($url, new pix_icon('t/edit', get_string('edit')), null,
+                array('class' => 'action-icon edit'));
+        }
 
         $o .= html_writer::end_tag('div');
 
@@ -266,11 +375,19 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         return $o;
     }
 
-    protected function list_other_items($items) {
+    protected function list_other_items($items, $gallery) {
         $o = html_writer::start_tag('ul');
         foreach ($items as $item) {
+            if (!$item->display) {
+                continue;
+            }
             $image = $this->output->pix_icon($item->file_icon(), $item->caption, 'moodle', array('class' => 'icon'));
-            $entry = html_writer::link($item->get_embed_url(), $image.$item->caption);
+            if ($gallery->mode != 'thebox' || $item->thebox_processed()) {
+                $entry = html_writer::link($item->get_embed_url(), $image.$item->caption);
+            } else {
+                $processstring = get_string('beingprocessed', 'mediagallery');
+                $entry = html_writer::span($image.$item->caption." ($processstring)");
+            }
             $o .= html_writer::tag('li', $entry);
         }
         $o .= html_writer::end_tag('ul');
@@ -294,7 +411,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             } else {
                 $attribs['href'] = $item->get_image_url_by_type('lowres');
             }
-            if ($gallery->gallerytype == MEDIAGALLERY_TYPE_AUDIO) {
+            if ($gallery->get_display_settings()->galleryfocus == MEDIAGALLERY_TYPE_AUDIO) {
                 $itemhtml .= $this->embed_html($item);
             }
             $o .= html_writer::tag('li', html_writer::tag('a', $itemhtml, $attribs));
@@ -330,9 +447,10 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             'data-mediabox' => 'gallery_'.$gallery->id,
             'title' => $item->caption,
             'data-id' => $item->id,
-            'data-type' => $item->externalurl != '' ? 'external' : 'internal',
+            'data-type' => $item->get_source(),
             'data-player' => $player,
             'data-url' => $item->get_embed_url(),
+            'data-objectid' => $item->objectid,
         );
         return $attribs;
     }
@@ -343,7 +461,8 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         $column = 1;
         $row = 1;
         $rowopen = false;
-        $perpage = $gallery->gridcolumns * $gallery->gridrows;
+        $view = $gallery->get_display_settings();
+        $perpage = $view->gridcolumns * $view->gridrows;
         $offset = $perpage * $options['page'];
 
         $cappos = $gallery->get_collection()->captionposition;
@@ -357,7 +476,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
                 $offset--;
                 continue;
             }
-            if ($column > $gallery->gridcolumns && $gallery->gridcolumns != 0) {
+            if ($column > $view->gridcolumns && $view->gridcolumns != 0) {
                 // Row complete.
                 $o .= html_writer::end_tag('div');
                 $rowopen = false;
@@ -368,12 +487,20 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
                 $o .= html_writer::start_tag('div', array('class' => 'grid_row clearfix'));
                 $rowopen = true;
             }
-            if ($row > $gallery->gridrows && $gallery->gridrows != 0) {
+            if ($row > $view->gridrows && $view->gridrows != 0) {
                 // Grid is now full.
                 break;
             }
 
-            $caption = html_writer::tag('div', $item->caption, array('class' => 'caption'));
+
+            $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id, 'action' => 'info'));
+            $infoicon = html_writer::tag('div',
+                $this->output->action_icon($url, new pix_icon('i/info', get_string('information', 'mediagallery')), null,
+                    array('class' => 'action-icon info')),
+                array('class' => 'info')
+            );
+
+            $caption = html_writer::tag('div', $infoicon.$item->caption, array('class' => 'caption'));
             $img = html_writer::empty_tag('img', array('src' => $item->get_image_url_by_type('thumbnail')));
             $linkattribs = $this->linkattribs($gallery, $item);
             $link = html_writer::link($item->get_image_url_by_type('lowres'), $img, $linkattribs);
@@ -383,24 +510,13 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
                 $itemframe .= $caption;
             }
             $itemframe .= html_writer::tag('div', $link, array('class' => 'item-thumb'));
-            if ($gallery->gallerytype == MEDIAGALLERY_TYPE_AUDIO) {
+            if ($gallery->get_display_settings()->galleryfocus == MEDIAGALLERY_TYPE_AUDIO) {
                 $itemframe .= $this->embed_html($item);
             }
             if ($cappos == MEDIAGALLERY_POS_BOTTOM) {
                 $itemframe .= $caption;
             }
-            $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id, 'action' => 'info'));
-            $itemframe .= html_writer::tag('div',
-                $this->output->action_icon($url, new pix_icon('i/info', get_string('information', 'mediagallery')), null,
-                    array('class' => 'action-icon info')),
-                array('class' => 'info')
-            );
-            
-            //$itemmeta = $item->get_metainfo();
-            
-            //if (isset($itemmeta->username)) $itemframe .= html_writer::tag('div', $itemmeta->username.'XX', array('class' => 'item-username'));
-            //else $itemframe .= html_writer::tag('div', 'nothing', array('class' => 'item-username'));
-                
+             
             $itemframe = html_writer::tag('div', $itemframe, array('class' => 'item-wrapper'));
 
             $o .= html_writer::tag('div', $itemframe, array('class' => 'item grid_item', 'data-id' => $item->id,
@@ -488,5 +604,15 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             $size = number_format($size) . $b;
         }
         return $size;
+    }
+
+    public function tags($tags) {
+        $this->page->requires->yui_module('moodle-mod_mediagallery-tagselector', 'M.mod_mediagallery.tagselector.init',
+            array('tagentry', $tags), null, true);
+
+        $tagfields = html_writer::span(get_string('tags', 'mediagallery').': ');
+        $tagfields .= html_writer::empty_tag('input', array('id' => 'tagentry'));
+        $o = html_writer::div($tagfields, 'tagcontainer');
+        return $o;
     }
 }
