@@ -249,10 +249,11 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      *
      * @param $gallery \mod_mediagallery\gallery The gallery to display.
      */
-    public function gallery_editing_page(gallery $gallery) {
+    public function gallery_editing_page(gallery $gallery, $asdata=false) {
         $o = html_writer::start_tag('div', array('class' => 'gallery_items editing'));
         foreach ($gallery->get_items() as $item) {
-            $o .= $this->item_editing($item, $gallery);
+            if ($asdata) $o .= $this->item_asdata($item, $gallery);
+            else $o .= $this->item_editing($item, $gallery);
         }
         $o .= html_writer::end_tag('div');
         return $o;
@@ -613,6 +614,132 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         $tagfields = html_writer::span(get_string('tags', 'mediagallery').': ');
         $tagfields .= html_writer::empty_tag('input', array('id' => 'tagentry'));
         $o = html_writer::div($tagfields, 'tagcontainer');
+        return $o;
+    }
+    
+    /**
+     * Render a specific gallery as data.
+     *
+     * @param $gallery \mod_mediagallery\gallery The gallery to display.
+     *//* @param $editing bool Display editing controls.
+     * @param $options array Any further options for display.
+     *                       'offset' int Used for browsing through pages of items.
+     */
+    public function gallery_page_asdata(gallery $gallery, $editing = false, $options = array()) {
+        global $DB, $CFG, $cm;
+        
+        $o = $this->gallery_heading($gallery);
+
+        $class = '';
+        $pix = 't/check';
+        if (!$gallery->moral_rights_asserted()) {
+            $class = ' no';
+            $pix = 'i/invalid';
+        }
+        $indicator = html_writer::empty_tag('img', array('src' => $this->output->pix_url($pix)));
+        //$o .= html_writer::tag('div', $indicator, array('class' => 'moralrights'.$class));
+        //$link = html_writer::link('#', get_string('sample', 'mediagallery'), array('id' => 'mg_sample'));
+        //$o .= html_writer::tag('div', $link, array('class' => 'moralrights_title'));
+
+        $linkurl = new moodle_url('/user/profile.php', array('id' => $gallery->userid));
+    
+        if ($user = $DB->get_record('user', array('id' => $gallery->userid), 'id, firstname, lastname')) {
+            
+            
+        }$o .= html_writer::tag('div', html_writer::link($linkurl, html_writer::empty_tag('img', array('src' => $CFG->wwwroot.'/user/pix.php/'.$gallery->userid.'/f2.jpg','class'=>'img-rounded','height'=>23,'width'=>23, 'title' => 'Profile picture of '.$user->firstname.' '.$user->lastname, 'alt' => 'Profile picture of '.$user->firstname.' '.$user->lastname )).' '.$user->firstname.' '.$user->lastname), array('class' => 'gallery-ownername'));
+		
+		if ($gallery->mode != 'youtube' && !$editing) {
+            $currentfocus = $gallery->type();
+            if (isset($options['focus']) && !is_null($options['focus'])) {
+                $currentfocus = $options['focus'];
+            }
+            $o .= $this->focus_selector($currentfocus);
+        }
+
+        echo '<h1>asdata:'.$asdata.'</h1>';        
+        $o .= $this->gallery_editing_page($gallery,$asdata=true);
+        
+
+        $tags = $gallery->get_tags();
+        if (!empty($tags)) {
+            $tagtitle = html_writer::span(get_string('tags', 'mediagallery').': ', 'tagheading');
+            $o .= html_writer::div($tagtitle.$tags, 'taglist');
+        }
+
+
+		$collectionurl = new moodle_url('/mod/mediagallery/view.php', array('id' => $cm->id));
+        $o .= html_writer::div(html_writer::link($collectionurl, '<i class="fa fa-arrow-left"></i> '.get_string('returntocollection', 'mediagallery')), 'collection-link');
+
+        if (!empty($options['comments']) && !$editing) {
+            $o .= html_writer::div($options['comments']->output(true), 'commentarea');
+        }
+        // If the user normally could edit, but can't currently due to read-only time or submission, display export link.
+        if ($gallery->user_can_edit(null, true) && !$gallery->user_can_edit()) {
+            $exporturl = new moodle_url('/mod/mediagallery/export.php', array('g' => $gallery->id));
+            $o .= html_writer::div(html_writer::link($exporturl, get_string('exportgallery', 'mediagallery')), 'exportlink');
+        }
+        $o .= html_writer::div('', 'clearfix');
+        return $o;
+    }
+    
+    public function item_asdata(item $item, $gallery) {
+        global $USER;
+        $o = html_writer::start_tag('div', array('class' => 'item-full', 'data-id' => $item->id, 'data-title' => $item->caption));
+
+        $img = html_writer::empty_tag('img', array('src' => $item->get_image_url_by_type()));
+        $link = html_writer::link(null, $img);
+        $o .= html_writer::tag('div', $link, array('class' => ''));
+        $o .= html_writer::start_tag('div', array('class' => 'title'));
+        $o .= $this->output->heading(format_string($item->caption), 6);
+        
+        $o .= '<div>';
+        $infobj = $item->get_structured_metainfo();
+        //$o .= '<code><pre>'.print_r($infobj,1).'</pre></code>';
+        foreach($infobj->fields as $ib) {
+            if (!empty($ib['value'])) $o .= '<div><b>'.$ib['displayname'].'</b>: '.$ib['value'].'</div>';
+        }
+        
+        /*
+        foreach($infobj->ratings as $ib) {
+            if (!empty($ib['value'])) $o .= '<div><b>'.$ib['displayname'].'</b>: '.$ib['value'].'</div>';
+        }
+        */
+        
+        if (!empty($infobj->ratings)) $o .= '<div><b>Ratings</b>: '.$infobj->ratings.'</div>';
+        $o .= '<div><b>Likes</b>: '.(!empty($infobj->likes)?$infobj->likes:0).'</div>';
+        $o .= '<div>'.$infobj->commentcontrol.'</div>';
+        
+        
+        $o .= '</div>';
+        
+        $o .= html_writer::end_tag('div');
+
+        /*
+        $o .= html_writer::start_tag('div', array('class' => 'controls'));
+        
+        $this->page->requires->yui_module('moodle-mod_mediagallery-base', 'M.mod_mediagallery.base.add_item_info_modal',
+            array($item->get_metainfo()), null, true);
+        $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id, 'action' => 'info'));
+        $o .= $this->output->action_icon($url, new pix_icon('i/info', get_string('information', 'mediagallery')), null,
+            array('class' => 'action-icon info'));
+
+        $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id, 'action' => 'delete'));
+        $isowner = $item->is_thebox_creator_or_agent() ? ' owner' : '';
+        if ($gallery->mode != 'thebox' || $gallery->is_thebox_creator_or_agent()) {
+            $o .= $this->output->action_icon($url, new pix_icon('t/delete', get_string('delete')), null,
+                array('class' => 'action-icon delete'.$isowner));
+        }
+
+        if ($item->user_can_edit() || $gallery->is_thebox_creator_or_agent() || $gallery->get_collection()->is_thebox_creator_or_agent()) {
+            $url = new moodle_url('/mod/mediagallery/item.php', array('i' => $item->id));
+            $o .= $this->output->action_icon($url, new pix_icon('t/edit', get_string('edit')), null,
+                array('class' => 'action-icon edit'));
+        }
+
+        $o .= html_writer::end_tag('div');
+        */
+        
+        $o .= html_writer::end_tag('div');
         return $o;
     }
 }

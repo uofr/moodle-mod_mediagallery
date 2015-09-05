@@ -30,6 +30,7 @@ require_once(dirname(__FILE__).'/locallib.php');
 $id = optional_param('id', 0, PARAM_INT); // A course_module id.
 $m  = optional_param('m', 0, PARAM_INT); // A mediagallery id.
 $g = optional_param('g', 0, PARAM_INT); // A mediagallery_gallery id.
+$asdata = optional_param('asdata', 0, PARAM_INT); // Display gallery as data?
 $page = optional_param('page', 0, PARAM_INT);
 $focus = optional_param('focus', null, PARAM_INT);
 $editing = optional_param('editing', false, PARAM_BOOL);
@@ -221,7 +222,11 @@ if (!$gallery) {
         }
         $options['page'] = $page;
         $options['focus'] = $focus;
-        echo $output->gallery_page($gallery, $editing, $options);
+
+        echo '<p><a href="'.new moodle_url('/mod/mediagallery/view.php', array('g' => $gallery->id, 'editing' => 1, 'asdata' =>($asdata?0:1))).'">View as '.($asdata?'Gallery':'Data').'</a></p>';
+        
+        if ($asdata) echo $output->gallery_page_asdata($gallery, $editing, $options);
+        else echo $output->gallery_page($gallery, $editing, $options);
     } else {
         print_error('nopermissions', 'error', $pageurl, 'view gallery');
     }
