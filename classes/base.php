@@ -156,7 +156,7 @@ abstract class base {
                     'context' => $this->get_context(),
                     'objectid' => $this->id,
                 );
-                if ($data->nosync) {
+                if (isset($data->nosync) && $data->nosync) {
                     $params['other']['nosync'] = true;
                 }
                 $class = get_called_class();
