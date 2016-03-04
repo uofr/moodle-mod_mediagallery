@@ -148,6 +148,7 @@ $string['filename'] = 'File name';
 $string['filesize'] = 'File size';
 $string['foundxresults'] = 'Found {$a} result(s):';
 $string['gallery'] = 'Gallery';
+$string['gallerycomments'] = 'Gallery comments';
 $string['galleryfocus'] = 'Gallery focus';
 $string['galleryfocus_help'] = 'The default focus of the gallery (determines what filetypes are presented as the focus of the gallery). If set as a YouTube gallery, the focus is locked to Video.';
 $string['galleryname'] = 'Gallery name';
