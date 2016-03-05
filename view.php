@@ -30,6 +30,7 @@ require_once(dirname(__FILE__).'/locallib.php');
 $id = optional_param('id', 0, PARAM_INT); // A course_module id.
 $m  = optional_param('m', 0, PARAM_INT); // A mediagallery id.
 $g = optional_param('g', 0, PARAM_INT); // A mediagallery_gallery id.
+$action = optional_param('action', 'viewcollection', PARAM_ALPHA);
 $page = optional_param('page', 0, PARAM_INT);
 $focus = optional_param('focus', null, PARAM_INT);
 $editing = optional_param('editing', false, PARAM_BOOL);
@@ -37,12 +38,23 @@ $forcesync = optional_param('sync', false, PARAM_BOOL);
 $viewcontrols = 'gallery';
 $gallery = false;
 
+$mediasize = get_user_preferences('mod_mediagallery_mediasize', \mod_mediagallery\output\gallery\renderable::MEDIASIZE_MD);
+user_preference_allow_ajax_update('mod_mediagallery_mediasize', PARAM_INT);
+
+$options = array(
+    'focus' => $focus,
+    'mediasize' => $mediasize,
+    'editing' => $editing,
+    'page' => $page,
+    'action' => $action,
+    'viewcontrols' => $viewcontrols,
+);
 if ($g) {
-    $options = array('focus' => $focus);
     $gallery = new \mod_mediagallery\gallery($g, $options);
     $gallery->sync($forcesync);
+    $options['action'] = 'viewgallery';
     $m = $gallery->instanceid;
-    $viewcontrols = 'item';
+    $options['viewcontrols'] = 'item';
     $mediagallery = $gallery->get_collection();
     $course     = $DB->get_record('course', array('id' => $mediagallery->course), '*', MUST_EXIST);
     $cm = $mediagallery->cm;
@@ -56,6 +68,26 @@ if ($g) {
     $cm         = get_coursemodule_from_instance('mediagallery', $mediagallery->id, $course->id, false, MUST_EXIST);
 } else {
     print_error('missingparameter');
+}
+
+// The single collection type was contributed by github user eSrem.
+// It is not officially supported by UNSW.
+if ($mediagallery->colltype == "single") {
+    switch($mediagallery->count_galleries()) {
+        case 0:
+            // Redirect to adding a gallery.
+            redirect(new moodle_url('/mod/mediagallery/gallery.php', array('m' => $mediagallery->id)));
+            break;
+        case 1:
+            $galleries = $mediagallery->get_visible_galleries();
+            $gallery = reset($galleries);
+            $options['action'] = 'viewgallery';
+            $options['viewcontrols'] = 'item';
+            break;
+        default: // More than one, delete others.
+            print_error('toomany', 'mod_mediagallery');
+            break;
+    }
 }
 
 $context = context_module::instance($cm->id);
@@ -76,155 +108,37 @@ if ($mediagallery->was_deleted()) {
     exit;
 }
 
-$canedit = $gallery && $gallery->user_can_edit();
-
+$canedit = $gallery && $gallery->user_can_contribute();
 if ($mediagallery->is_read_only() || !$canedit) {
-    $editing = false;
+    $options['editing'] = false;
 }
 
-require_login($course, true, $cm);
 
 if ($gallery) {
     $pageurl = new moodle_url('/mod/mediagallery/view.php', array('g' => $g, 'page' => $page));
 
-    $navnode = $PAGE->navigation->find($cm->id, navigation_node::TYPE_ACTIVITY);
-    if (empty($navnode)) {
-        $navnode = $PAGE->navbar;
-    }
-    $navurl = clone $pageurl;
-    $node = $navnode->add(format_string($gallery->name), $navurl);
-    $node->make_active();
-
-    if ($editing) {
+    if ($options['editing']) {
         $pageurl->param('editing', true);
     }
 } else {
     $pageurl = new moodle_url('/mod/mediagallery/view.php', array('id' => $cm->id));
 }
 
-$collmode = !empty($mediagallery->objectid) ? 'thebox' : 'standard';
-$jsoptions = new stdClass();
-$jsoptions->mode = $collmode;
-if ($gallery) {
-    $jsoptions->enablecomments = $gallery->can_comment();
-    $jsoptions->enablelikes = $gallery->can_like();
-    $jsoptions->mode = $gallery->mode;
-}
-
-$PAGE->set_context($context);
+$PAGE->set_cm($cm, $course);
 $PAGE->set_url($pageurl);
-$PAGE->set_title(format_string($mediagallery->name));
-$PAGE->set_heading(format_string($course->fullname));
-$PAGE->requires->js('/mod/mediagallery/js/screenfull.min.js');
-$PAGE->requires->yui_module('moodle-mod_mediagallery-base', 'M.mod_mediagallery.base.init',
-    array($course->id, $mediagallery->id, $viewcontrols, $editing, $g, $jsoptions));
+require_login($course, true, $cm);
 
-$mediaboxparams = array(
-    'metainfouri' => $CFG->wwwroot.'/mod/mediagallery/rest.php',
-    'metainfodata' => array(
-        'sesskey' => sesskey(),
-        'm' => $mediagallery->id,
-        'class' => 'item',
-    ),
-);
 if ($gallery) {
-    $mediaboxparams['enablecomments'] = $gallery->can_comment();
-    $mediaboxparams['enablelikes'] = $gallery->can_like();
-}
-$PAGE->requires->yui_module('moodle-mod_mediagallery-mediabox', 'M.mod_mediagallery.init_mediabox', array($mediaboxparams));
-$PAGE->requires->jquery();
-
-$jsstrs = array('confirmgallerydelete', 'confirmitemdelete', 'deletegallery',
-    'deleteitem', 'like', 'likedby', 'comments', 'unlike', 'others', 'other',
-    'mediagallery', 'information', 'caption',
-    'moralrights', 'originalauthor', 'productiondate', 'medium', 'collection',
-    'publisher', 'galleryname', 'creator', 'filename', 'filesize', 'datecreated',
-    'viewfullsize', 'you', 'togglesidebar', 'close', 'togglefullscreen', 'tags',
-    'reference', 'broadcaster', 'confirmcollectiondelete',
-    'deleteorremovecollection', 'deleteorremovecollectionwarn',
-    'deleteorremovegallery', 'deleteorremovegallerywarn',
-    'deleteorremoveitem', 'deleteorremoveitemwarn',
-    'removecollectionconfirm', 'removegalleryconfirm', 'removeitemconfirm',
-    'youmusttypedelete', 'copyright');
-$PAGE->requires->strings_for_js($jsstrs, 'mod_mediagallery');
-$PAGE->requires->strings_for_js(array(
-    'move', 'add', 'description', 'no', 'yes', 'group', 'fullnameuser', 'username', 'next', 'previous', 'submit',
-), 'moodle');
-
-if ($gallery && $canedit) {
-    if (!$editing) {
-        $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $gallery->id, 'editing' => 1));
-        $PAGE->set_button($OUTPUT->single_button($url, get_string('editthisgallery', 'mediagallery', 'get')));
-    } else {
-        $PAGE->requires->yui_module('moodle-mod_mediagallery-dragdrop', 'M.mod_mediagallery.dragdrop.init');
+    $navnode = $PAGE->navigation->find($cm->id, navigation_node::TYPE_ACTIVITY);
+    if (empty($navnode)) {
+        $navnode = $PAGE->navbar;
     }
+    $navurl = clone $pageurl;
+    $navurl->remove_params('editing');
+    $node = $navnode->add(format_string($gallery->name), $navurl);
+    $node->make_active();
+
 }
 
-$output = $PAGE->get_renderer('mod_mediagallery');
-
-echo $OUTPUT->header();
-
-if (!$gallery) {
-    $params = array(
-        'context' => $context,
-        'objectid' => $mediagallery->id,
-    );
-    $event = \mod_mediagallery\event\course_module_viewed::create($params);
-    $event->add_record_snapshot('course_modules', $cm);
-    $event->add_record_snapshot('course', $course);
-    $event->trigger();
-
-    groups_print_activity_menu($cm, $pageurl);
-    if ($mediagallery->intro) {
-        echo $OUTPUT->box(format_module_intro('mediagallery', $mediagallery, $cm->id),
-            'generalbox mod_introbox', 'mediagalleryintro');
-    }
-
-    $galleries = $mediagallery->get_visible_galleries();
-    echo $output->gallery_list_page($mediagallery, $galleries);
-
-    if (!$mediagallery->is_read_only()) {
-        $maxreached = false;
-        if ($mediagallery->maxgalleries == 0 || count($mediagallery->get_my_galleries()) < $mediagallery->maxgalleries) {
-        /*    echo html_writer::link(new moodle_url('/mod/mediagallery/gallery.php', array('m' => $mediagallery->id)),
-                get_string('addagallery', 'mediagallery'),array('class'=>'galleryprompt'));
-        } else {
-            echo html_writer::div(get_string('maxgalleriesreached', 'mediagallery'),'',array('class'=>'alert alert-info clear','style'=>'display: inline-block'));
-		*/
-		$maxreached = true;
-        }
-        echo $output->collection_editing_actions($mediagallery, $maxreached);
-    }
-} else {
-    $params = array(
-        'context' => $context,
-        'objectid' => $gallery->id,
-    );
-    $event = \mod_mediagallery\event\gallery_viewed::create($params);
-    $event->add_record_snapshot('course_modules', $cm);
-    $event->add_record_snapshot('course', $course);
-    $event->trigger();
-    if ($canedit || $gallery->user_can_view()) {
-        $options = array();
-        if ($gallery->can_comment()) {
-            $cmtopt = new stdClass();
-            $cmtopt->area = 'gallery';
-            $cmtopt->context = $context;
-            $cmtopt->itemid = $gallery->id;
-            $cmtopt->showcount = true;
-            $cmtopt->component = 'mod_mediagallery';
-            $cmtopt->cm = $cm;
-            $cmtopt->course = $course;
-            $cmtopt->linktext = get_string('gallerycomments', 'mediagallery');
-            $options['comments'] = new comment($cmtopt);
-            comment::init();
-        }
-        $options['page'] = $page;
-        $options['focus'] = $focus;
-        echo $output->gallery_page($gallery, $editing, $options);
-    } else {
-        print_error('nopermissions', 'error', $pageurl, 'view gallery');
-    }
-}
-
-echo $OUTPUT->footer();
+$controller = new \mod_mediagallery\viewcontroller($context, $cm, $course, $mediagallery, $gallery, $pageurl, $options);
+echo $controller->display_action($options['action']);
