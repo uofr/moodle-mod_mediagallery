@@ -319,6 +319,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         }
 		
 		if ($user = $DB->get_record('user', array('id' => $gallery->userid), 'id, firstname, lastname')) {
+			$linkurl = new moodle_url('/user/profile.php', array('id' => $gallery->userid));
             $o .= html_writer::tag('div', html_writer::link($linkurl, html_writer::empty_tag('img', array('src' => $CFG->wwwroot.'/user/pix.php/'.$gallery->userid.'/f2.jpg','class'=>'img-rounded','height'=>23,'width'=>23, 'title' => 'Profile picture of '.$user->firstname.' '.$user->lastname, 'alt' => 'Profile picture of '.$user->firstname.' '.$user->lastname )).' '.$user->firstname.' '.$user->lastname), array('class' => 'gallery-ownername'));
         }
 
