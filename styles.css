@@ -715,16 +715,14 @@ body.mediaboxactive .gallery .mediaplugin object {
 
 .path-mod-mediagallery .actions.collection > span,
 .path-mod-mediagallery a.maction {
-    font-family: Lato,"Helvetica Neue",Helvetica,Arial,sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 400;
     -webkit-font-smoothing: subpixel-antialiased;
-    text-transform: uppercase;
 }
 
 .path-mod-mediagallery .mgfa,
 .path-mod-mediagallery a.maction {
-    color: #000;
+    color: #888;
 }
 
 .path-mod-mediagallery a:hover .mgfa,
@@ -734,7 +732,6 @@ body.mediaboxactive .gallery .mediaplugin object {
 }
 
 .path-mod-mediagallery .controls {
-    font-family: Lato,"Helvetica Neue",Helvetica,Arial,sans-serif;
     font-size: 15px;
     font-weight: 400;
     -webkit-font-smoothing: subpixel-antialiased;
@@ -790,4 +787,8 @@ body.mediaboxactive .gallery .mediaplugin object {
     border-color: #e3e3e3;
     border-radius: 3px;
     box-shadow: inset 0 1px 1px rgba(0,0,0,0.05);
+}
+
+.path-mod-mediagallery .gallery_items.editing .action-icon img.smallicon {
+	vertical-align: middle;
 }

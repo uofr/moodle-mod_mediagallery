@@ -251,6 +251,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         }
         $menu = new action_menu();
         $menu->set_alignment(action_menu::TR, action_menu::BR);
+		$trigger = html_writer::tag('span', get_string('edit'), array('class' => ''));
+		$menu->set_menu_trigger($trigger);
+		$menu->attributes['class'] .= ' section-cm-edit-actions';
         foreach ($actions as $action) {
             $menu->add($action);
         }
@@ -512,8 +515,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         }
 
         if ($link) {
-            $class = $actionmenu ? 'action-menu' : 'maction';
+            $class = $actionmenu ? 'menu-action' : 'maction btn btn-default';
             $linkclass = trim($linkclass.' '.$class);
+			$text = html_writer::span($text,array('class' => 'menu-action-text'));
             $o = html_writer::link($link, $icon.$text, array('class' => $linkclass));
         } else {
             $o = html_writer::span($text);
