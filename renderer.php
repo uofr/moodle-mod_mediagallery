@@ -149,7 +149,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         $rowopen = false;
         $count = 0;
 
-        $o = $this->output->heading($renderable->collection->name);
+        //$o = $this->output->heading($renderable->collection->name);
         $o .= html_writer::start_tag('div', array('class' => 'gallery_list'));
         foreach ($renderable->galleries as $gallery) {
             if ($renderable->thumbnailsperrow > 0 && $column > $renderable->thumbnailsperrow) {
@@ -198,6 +198,16 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         $o .= html_writer::tag('div', $link, array('class' => 'gthumbnail'));
         $o .= html_writer::start_tag('div', array('class' => 'title'));
         $o .= $this->output->heading(format_string($gallery->name), 6);
+		    
+        $gallerymeta = $gallery->get_metainfo();
+        $linkurl = new moodle_url('/user/profile.php', array('id' => $gallerymeta->userid));
+        
+        
+        
+        
+        if ($user = $DB->get_record('user', array('id' => $gallerymeta->userid), 'id, firstname, lastname')) $o .= html_writer::tag('div', $user->firstname.' '.$user->lastname, array('class' => 'gallery-username'));
+         
+
         $o .= html_writer::end_tag('div');
 
         $o .= html_writer::start_tag('div', array('class' => 'controls'));
@@ -210,16 +220,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
             array('class' => 'action-icon info'));
           */  
         
-            
-        $gallerymeta = $gallery->get_metainfo();
-        $linkurl = new moodle_url('/user/profile.php', array('id' => $gallerymeta->userid));
         
-        
-        
-        
-        if ($user = $DB->get_record('user', array('id' => $gallerymeta->userid), 'id, firstname, lastname')) $o .= html_writer::tag('div', $user->firstname.' '.$user->lastname, array('class' => 'gallery-username'));
-         
-
         $actions = $this->gallery_list_item_actions($gallery);
         $o .= $this->action_menu($actions);
 
@@ -265,9 +266,9 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
     }
 
     public function gallery_heading(gallery $gallery) {
-        $name = format_string($gallery->get_collection()->name).' '.$this->output->rarrow().' '.format_string($gallery->name);
+		$name = format_string($gallery->name);
         $head = $this->output->heading($name);
-        return html_writer::div($head, 'heading');
+		return html_writer::div($head, 'heading');
     }
 
     private function focus_selector($currentfocus) {
@@ -306,7 +307,10 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
 		global $DB, $CFG, $cm;
 
         $gallery = $renderable->gallery;
-        $o = $this->gallery_heading($gallery);
+		
+		$o = $this->output->heading(format_string($gallery->get_collection()->name),4);
+		
+        $o .= $this->gallery_heading($gallery);
 
         if (!$renderable->nosample) {
             $class = '';

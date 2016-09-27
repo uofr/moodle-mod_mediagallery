@@ -120,10 +120,12 @@ class viewcontroller {
 
         $output = '';
         $output .= groups_print_activity_menu($this->cm, $this->pageurl, true);
-
+		
+		$output = $this->renderer->heading($this->collection->name);
+		
         if ($this->collection->intro) {
             $output .= $this->renderer->box(format_module_intro('mediagallery', $this->collection, $this->cm->id),
-                'generalbox mod_introbox', 'mediagalleryintro');
+                'box generalbox mod_introbox', 'intro');
         }
 
         $galleries = $this->collection->get_visible_galleries();

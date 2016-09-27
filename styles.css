@@ -18,7 +18,6 @@
 .path-mod-mediagallery .gallery_items.editing .item {
     box-shadow: 3px 3px 4px #777;
     width: 180px;
-    border: 1px solid;
     margin-right: 10px;
     float: left;
 }
@@ -40,15 +39,22 @@
 
 .path-mod-mediagallery .gallery_items .item {
     margin-bottom: 10px;
+	background-color: #f4f4f4;
+	border-radius: 0 0 0.5em 0.5em;
+}
+
+
+.path-mod-mediagallery .gallery_list_item {
+	background-color: #f4f4f4;
+	border-radius: 0 0 0.5em 0.5em;
 }
 
 .path-mod-mediagallery .gallery_list_item .title,
 .path-mod-mediagallery .item .title {
-    margin-left: 5px;
-    float: left;
-    overflow: hidden;
-    max-width: 170px;
     word-break: break-word;
+	padding: 0.25em;
+	border-bottom: solid 1px #ddd;
+	background-color: #fff;
 }
 
 .path-mod-mediagallery .gallery_list_item .title h6,
@@ -59,8 +65,7 @@
 
 .path-mod-mediagallery .gallery_list_item .controls,
 .path-mod-mediagallery .item .controls {
-    margin-right: 5px;
-    margin-bottom: 5px;
+    padding: 0.25em;
     float: right;
 }
 
@@ -70,7 +75,7 @@
 
 .path-mod-mediagallery .gallery_items .controls .moodle-actionmenu,
 .path-mod-mediagallery .gallery_list_item .controls .moodle-actionmenu {
-    display: inline-block;
+    float: right;
 }
 
 .path-mod-mediagallery div.grid_item {
@@ -87,6 +92,7 @@
     text-align: center;
     position: relative;
     overflow: hidden;
+	padding: 0.5em 0.25em;
 }
 
 .path-mod-mediagallery div.grid_item div.item-wrapper {
@@ -140,7 +146,7 @@
 }
 
 .path-mod-mediagallery .heading {
-    float: left;
+	border-top: solid 1px #ddd;
 }
 
 .path-mod-mediagallery .focus_selector,
@@ -149,6 +155,10 @@
     height: 30px;
     line-height: 30px;
     margin-right: 5px;
+	margin-bottom: 1em;
+	background-color: #f4f4f4;
+	border-radius: 0.5em;
+	padding: 0.25em 0.25em 0.25em 0.5em;
 }
 
 .path-mod-mediagallery .mediasize_selector label,
@@ -183,8 +193,8 @@
 
 .path-mod-mediagallery .gallery-ownername {
     clear: both;
-    font-size: 1.5em;
-    margin-bottom: 1.5em;
+    font-size: 1.25em;
+    margin-bottom: 0.5em;
 }
 
 .path-mod-mediagallery .actions {
@@ -524,6 +534,7 @@ body.mediaboxactive .gallery .mediaplugin object {
 #mediabox-sidebar {
     position: fixed;
     right: 0;
+	top: 30px;
     width: 300px;
     height: 100%;
     background-color: #222;
@@ -633,7 +644,7 @@ body.mediaboxactive .gallery .mediaplugin object {
 #mediabox.sidebarhidden #mediabox-sidebar-actions {
     position: absolute;
     top: 10px;
-    left: -40px;
+    /*left: -40px;*/
     background-color: #222;
     padding: 4px;
     -webkit-border-top-left-radius: 4px;
