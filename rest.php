@@ -23,6 +23,7 @@
  */
 
 if (!defined('AJAX_SCRIPT')) {
+    
     define('AJAX_SCRIPT', true);
 }
 require_once(dirname(__FILE__) . '/../../config.php');
@@ -75,7 +76,10 @@ switch($requestmethod) {
             $data->flow = !empty($matches[1]);
             echo json_encode($data);
         } else if ($action == 'metainfo') {
-            $info = $object->get_structured_metainfo();
+            $info = $object->get_structured_exifinfo();
+            echo json_encode($info);
+        } else if ($action == 'exifinfo') {
+            $info = $object->get_structured_exifinfo();
             echo json_encode($info);
         }
     break;

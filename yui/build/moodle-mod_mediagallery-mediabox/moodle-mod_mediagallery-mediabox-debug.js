@@ -241,7 +241,10 @@ Y.extend(MEDIABOX, Y.Base, {
                             '<div class="metaname">'+resp.fields[i].displayname+'</div>'
                         ).append(
                             '<div class="metavalue">'+resp.fields[i].value+'</div>'
+                        ).append(
+                            '<div class="metalocation">'+'TESTING'+'</div>'
                         ).appendTo(metainfo);
+
                     }
 
                     if (resp.commentcontrol) {

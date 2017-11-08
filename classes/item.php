@@ -565,6 +565,58 @@ class item extends base {
         return $info;
     }
 
+    public function get_structured_exifinfo() {
+        global $DB;
+
+        $displayfields = array(
+            'filename' => get_string('filename', 'mod_mediagallery'),
+            'filesize' => get_string('filesize', 'mod_mediagallery'),
+            /*'dimensions' => get_string('dimensions', 'mod_mediagallery'),
+            'shot' => get_string('shot', 'mod_mediagallery'),
+            'iso' => get_string('iso', 'mod_mediagallery'),
+            'device' => get_string('device', 'mod_mediagallery'),
+            'source' => get_string('source', 'mod_mediagallery'),
+            'location' => get_string('location', 'mod_mediagallery'),
+            
+            
+            'datecreated' => get_string('datecreated', 'mod_mediagallery'),*/
+
+            //'moralrightsformatted' => get_string('moralrights', 'mod_mediagallery'),
+        );
+
+        $info = $this->get_exifinfo();
+
+        $info->fields = array();
+
+        $data = clone $this->record;
+        $data->datecreatedformatted = '';
+
+        if ($data->datecreated > 0) {
+            $data->datecreatedformatted = userdate($data->datecreated, get_string('strftimedaydatetime', 'langconfig'));
+        }
+
+        /*foreach ($displayfields as $key => $displayname) {
+            $info->fields[] = array(
+                'displayname' => $displayname,
+                'name' => $key,
+                'value' => $data->$key,
+            );
+        }*/
+        $info->fields[] = array(
+                'displayname' => $displayfields['filename'],
+                'name' => 'filename',
+                'value' => $info->filename,
+        );
+
+        $info->fields[] = array(
+                'displayname' => $displayfields['filesize'],
+                'name' => 'filesize',
+                'value' => $info->extradetails,
+        );
+
+        return $info;
+    }
+
     private function get_youtube_videoid() {
         $id = null;
         if ($this->record->externalurl) {
@@ -737,6 +789,40 @@ class item extends base {
 
         // Creator name.
         $info->extradetails = '';
+
+        return $info;
+    }
+
+    public function get_exifinfo() {
+        global $CFG, $DB;
+
+        $info = new \stdClass();
+        
+        $info->contextid = $this->get_context()->id;
+
+        $oldfile = $this->get_file();
+
+        $fs = get_file_storage();
+        $file = $fs->get_file($this->get_context()->id, 'mod_mediagallery', 'item', $this->record->id, 'id', 
+            $oldfile->get_filepath(), $oldfile->get_filename());
+
+        if ($file) {
+            $contents = $file->get_content();
+            $exiffile = $file->copy_content_to_temp();
+        }
+
+        $exif = exif_read_data($exiffile, 0, true);
+
+        $info->filename = print_r($exif, 1);
+
+/*foreach ($exif as $key => $section) {
+    foreach ($section as $name => $val) {
+        echo "$key.$name: $val<br />\n";
+    }
+}*/
+
+        // Creator name.
+        $info->extradetails = print_r($exiffile, 1);
 
         return $info;
     }
