@@ -3,7 +3,7 @@ var MEDIABOX = function() {
 };
 
 Y.extend(MEDIABOX, Y.Base, {
-    initializer : function(config) {
+    initializer: function() {
         this.enable();
         this.build();
         this._sidebarwidth = 300;
@@ -18,7 +18,7 @@ Y.extend(MEDIABOX, Y.Base, {
 
     },
 
-    build : function() {
+    build: function() {
         var _this = this;
         var strnext = M.str.moodle.next;
         var strprev = M.str.moodle.previous;
@@ -26,20 +26,27 @@ Y.extend(MEDIABOX, Y.Base, {
         var strtoggle = M.str.mod_mediagallery.togglesidebar;
         var strfullscreen = M.str.mod_mediagallery.togglefullscreen;
         var strclose = M.str.mod_mediagallery.close;
-        var actions = '<img class="sidebartoggle" src="'+M.util.image_url('toggle', 'mod_mediagallery')+'" title="'+strtoggle+'" alt="'+strtoggle+'"/>';
-        actions += '<img class="prev" src="'+M.util.image_url('left', 'mod_mediagallery')+'" title="'+strprev+'" alt="'+strprev+'"/>';
-        actions += '<img class="next" src="'+M.util.image_url('right', 'mod_mediagallery')+'" title="'+strnext+'" alt="'+strnext+'"/>';
-        actions += '<img class="open" src="'+M.util.image_url('download', 'mod_mediagallery')+'" title="'+strdownload+'" alt="'+strdownload+'"/>';
+        var actions = '<img class="sidebartoggle" src="';
+        actions += M.util.image_url('toggle', 'mod_mediagallery') + '" title="' + strtoggle + '" alt="' + strtoggle + '"/>';
+        actions += '<img class="prev" src="';
+        actions += M.util.image_url('left', 'mod_mediagallery') + '" title="' + strprev + '" alt="' + strprev + '"/>';
+        actions += '<img class="next" src="';
+        actions += M.util.image_url('right', 'mod_mediagallery') + '" title="' + strnext + '" alt="' + strnext + '"/>';
+        actions += '<img class="open" src="';
+        actions += M.util.image_url('download', 'mod_mediagallery') + '" title="' + strdownload + '" alt="' + strdownload + '"/>';
         if (this._fullscreenavail) {
-            actions += '<img class="fullscreen" src="'+M.util.image_url('fullscreen', 'mod_mediagallery')+'" title="'+strfullscreen+'" alt="'+strfullscreen+'"/>';
+            actions += '<img class="fullscreen" src="' + M.util.image_url('fullscreen', 'mod_mediagallery');
+            actions += '" title="' + strfullscreen + '" alt="' + strfullscreen + '"/>';
         }
-        actions += '<img class="mbclose" src="'+M.util.image_url('close', 'mod_mediagallery')+'" title="'+strclose+'" alt="'+strclose+'"/>';
+        actions += '<img class="mbclose" src="';
+        actions += M.util.image_url('close', 'mod_mediagallery') + '" title="' + strclose + '" alt="' + strclose + '"/>';
 
         var template = '<div id="mediabox"><div id="mediabox-content-wrap"><div id="mediabox-content"></div></div>';
         template += '<div id="mediabox-sidebar">';
-        template += '<div id="mediabox-metainfo"></div><hr/><div id="mediabox-social"></div><hr/><div id="mediabox-comments"></div>';
+        template += '<div id="mediabox-metainfo"></div><hr/>';
+        template += '<div id="mediabox-social"></div><hr/><div id="mediabox-comments"></div>';
         template += '</div>';
-        template += '<div id="mediabox-sidebar-actions">'+actions+'</div>';
+        template += '<div id="mediabox-sidebar-actions">' + actions + '</div>';
         template += '<div id="mediabox-navbar"><div id="mediabox-navbar-container"></div></div></div>';
         template += '<div id="mediabox-overlay"></div>';
         Y.Node.create(template).appendTo('body');
@@ -62,7 +69,6 @@ Y.extend(MEDIABOX, Y.Base, {
         }, '#mediabox', '#mediabox-navbar, #mediabox-navbar-container');
 
         // Sidebar hide/expand button.
-        var sidebar = Y.one('#mediabox-sidebar');
         Y.one('#mediabox-sidebar-actions .sidebartoggle').on('click', function() {
             _this.mediabox.toggleClass('sidebarhidden');
             _this.resizeoverlay();
@@ -85,9 +91,9 @@ Y.extend(MEDIABOX, Y.Base, {
 
         // Like button and text.
         if (this.get('enablelikes')) {
-            Y.Node.create(
-                '<a class="like" href="#"><div class="like"></div>'+M.str.mod_mediagallery.like+'</a><span id="mediabox-likedby"></span>'
-            ).appendTo('#mediabox-social');
+            var likenode = '<a class="like" href="#"><div class="like"></div>';
+            likenode += M.str.mod_mediagallery.like + '</a><span id="mediabox-likedby"></span>';
+            Y.Node.create(likenode).appendTo('#mediabox-social');
         }
 
         // Like action.
@@ -127,11 +133,11 @@ Y.extend(MEDIABOX, Y.Base, {
 
         }, '#mediabox', '#mediabox-social a.like');
 
-        Y.delegate('blur', function(e) {
+        Y.delegate('blur', function() {
             _this.enablenav();
         }, '#mediabox', '#mediabox-comments textarea');
 
-        Y.delegate('focus', function(e) {
+        Y.delegate('focus', function() {
             _this.disablenav();
         }, '#mediabox', '#mediabox-comments textarea');
 
@@ -175,6 +181,26 @@ Y.extend(MEDIABOX, Y.Base, {
 
     },
 
+    updatenavbarselection: function(itemnumber) {
+        var current = this.navbar.one('.navitem.current');
+        if (current) {
+            current.removeClass('current');
+        }
+        this.navbar.one('.navitem[data-id="' + itemnumber + '"]').addClass('current');
+
+        // Let's keep the currently displayed image centered in the navbar.
+        var navbar = Y.one('#mediabox-navbar');
+        var currentitem = Y.one('#mediabox-navbar-container .current');
+        var itemwidth = currentitem.get('clientWidth') + 2 * parseInt(currentitem.getStyle('margin-left'), 10);
+        var items = Y.all('#mediabox-navbar-container .navitem');
+        var index = items.indexOf(currentitem);
+
+        var navwidth = navbar.get('clientWidth');
+        var margin = (navwidth / 2) - (itemwidth / 2) - (index * itemwidth);
+
+        Y.one('#mediabox-navbar-container').setStyle('margin-left', margin + 'px');
+    },
+
     changeitem : function(itemnumber) {
         if (this.currentitemindex === itemnumber) {
             return;
@@ -183,14 +209,9 @@ Y.extend(MEDIABOX, Y.Base, {
         var content = Y.one('#mediabox-content');
         var player = this.album[itemnumber].getAttribute('data-player');
         var type = this.album[itemnumber].getAttribute('data-type');
-        var objectid = this.album[itemnumber].getAttribute('data-objectid');
         content.empty();
 
-        var current = null;
-        if (current = this.navbar.one('.navitem.current')) {
-            current.removeClass('current');
-        }
-        this.navbar.one('.navitem[data-id="'+itemnumber+'"]').addClass('current');
+        this.updatenavbarselection(itemnumber);
 
         var image = new Image();
 
@@ -210,7 +231,7 @@ Y.extend(MEDIABOX, Y.Base, {
             image.src = this.album[itemnumber].getAttribute('href');
         }
 
-        this.currentitemindex = parseInt(itemnumber);
+        this.currentitemindex = parseInt(itemnumber, 10);
         this.currentitem = this.album[itemnumber];
 
         var metainfo = Y.one('#mediabox-metainfo');
@@ -235,10 +256,10 @@ Y.extend(MEDIABOX, Y.Base, {
                         if (resp.fields[i].value === '') {
                             continue;
                         }
-                        Y.Node.create('<div class="metafield '+resp.fields[i].name+'"></div>').append(
-                            '<div class="metaname">'+resp.fields[i].displayname+'</div>'
+                        Y.Node.create('<div class="metafield ' + resp.fields[i].name + '"></div>').append(
+                            '<div class="metaname">' + resp.fields[i].displayname + '</div>'
                         ).append(
-                            '<div class="metavalue">'+resp.fields[i].value+'</div>'
+                            '<div class="metavalue">' + resp.fields[i].value + '</div>'
                         ).appendTo(metainfo);
                     }
 
@@ -252,7 +273,9 @@ Y.extend(MEDIABOX, Y.Base, {
                             commentarea : 'item',
                             autostart : true
                         };
-                        M.core_comment.init(Y, opts);
+                        if (M.core_comment !== undefined) {
+                            M.core_comment.init(Y, opts);
+                        }
                     }
                     if (_this.get('enablelikes')) {
                         var icon = '<div class="like"></div>';
@@ -277,9 +300,9 @@ Y.extend(MEDIABOX, Y.Base, {
         if (player === "0" || player === "2") {
             this.embed_player(data.id);
             if (player === "0") {
-                content.one('span.mediaplugin').addClass('audio');
+                content.one('.mediaplugin').addClass('audio');
             } else {
-                content.one('span.mediaplugin').addClass('video');
+                content.one('.mediaplugin').addClass('video');
             }
         }
 
@@ -287,7 +310,10 @@ Y.extend(MEDIABOX, Y.Base, {
         if (this.currentitem.getAttribute('data-type') === 'youtube') {
             content.empty();
 
-            Y.Node.create('<iframe id="mediabox-youtube" type="text/html" width="'+this._videowidth+'" height="'+this._videoheight+'" src="'+this.currentitem.getAttribute('data-url') +'" frameborder="0">').appendTo(content);
+            var ytframe = '<iframe id="mediabox-youtube" type="text/html" width="';
+            ytframe += this._videowidth + '" height="' + this._videoheight + '" src="';
+            ytframe += this.currentitem.getAttribute('data-url') + '" frameborder="0">';
+            Y.Node.create(ytframe).appendTo(content);
             this.repositionitem();
         }
 
@@ -308,20 +334,9 @@ Y.extend(MEDIABOX, Y.Base, {
                 success : function (id, response) {
                     var resp = JSON.parse(response.responseText);
                     Y.one('#mediabox-content').setHTML(resp.html);
-                    if (resp.type === 'audio') {
-                        M.util.add_audio_player(resp.id, resp.url, false);
-                    } else if (resp.objectid == '') {
-                        M.util.add_video_player(resp.id, resp.url, false);
-                    }
-                    M.mod_mediagallery.base.load_flowplayer();
                     if (resp.type === 'video') {
                         var plugin = Y.one('#mediabox-content .mediaplugin');
-                        if (resp.flow) {
-                            plugin.addClass('flow');
-                            this.repositionitem(this._videowidth, this._videoheight);
-                        } else {
-                            this.repositionitem(plugin.get('offsetWidth'), plugin.get('offsetHeight'));
-                        }
+                        this.repositionitem(plugin.get('offsetWidth'), plugin.get('offsetHeight'));
                     }
                 }
             },
@@ -334,7 +349,8 @@ Y.extend(MEDIABOX, Y.Base, {
 
     enable : function() {
         var _this = this;
-        return Y.one('body').all('a[rel^=mediabox], area[rel^=mediabox], a[data-mediabox], area[data-mediabox]').on('click', function(e) {
+        var mediaboxtarget = 'a[rel^=mediabox], area[rel^=mediabox], a[data-mediabox], area[data-mediabox]';
+        return Y.one('body').all(mediaboxtarget).on('click', function(e) {
             e.preventDefault();
             _this.start(Y.one(e.currentTarget));
             return false;
@@ -353,7 +369,7 @@ Y.extend(MEDIABOX, Y.Base, {
         KEYCODE_ESC = 27;
         KEYCODE_LEFTARROW = 37;
         KEYCODE_RIGHTARROW = 39;
-        keycode = event.keyCode;
+        keycode = e.keyCode;
         key = String.fromCharCode(keycode).toLowerCase();
         if (keycode === KEYCODE_ESC || key.match(/x|o|c/)) {
             this.stop();
@@ -369,7 +385,9 @@ Y.extend(MEDIABOX, Y.Base, {
     },
 
     repositionitem : function(width, height) {
-        var offsetTop, offsetLeft, newwidth, newheight;
+        var offsetTop, offsetLeft;
+        var newwidth = '';
+        var newheight = '';
         var content = Y.one('#mediabox-content');
         var innercontent = content.get('children').get(0)[0];
         var dataplayer = 1;
@@ -377,6 +395,10 @@ Y.extend(MEDIABOX, Y.Base, {
         if (this.currentitem !== null) {
             dataplayer = this.currentitem.getAttribute('data-player');
             datatype = this.currentitem.getAttribute('data-type');
+        }
+
+        if (innercontent === undefined) {
+            return;
         }
 
         if (dataplayer === "2" || datatype === 'youtube') {
@@ -402,8 +424,6 @@ Y.extend(MEDIABOX, Y.Base, {
         var maxwidth = winwidth - this.sidebarwidth();
         var maxheight = winheight - this._navbarheight;
 
-        var newwidth = '';
-        var newheight = '';
         if (width > maxwidth || height > maxheight) {
             if ((width / maxwidth) > (height / maxheight)) {
                 newwidth = maxwidth;
@@ -490,10 +510,10 @@ Y.extend(MEDIABOX, Y.Base, {
         var collapsed = M.util.image_url('t/collapsed', 'moodle');
         var expanded = M.util.image_url('t/expanded', 'moodle');
 
-        var imagenode = Y.Node.create('<img title="'+title+'"/>');
+        var imagenode = Y.Node.create('<img title="' + title + '"/>');
         imagenode.setAttribute('src', collapsed);
 
-        var node = Y.Node.create('<a href="#" class="toggle">'+title+'</a>');
+        var node = Y.Node.create('<a href="#" class="toggle">' + title + '</a>');
         node.prepend(imagenode);
 
         var container = Y.Node.create('<div class="metainfo-toggle"></div>');
@@ -531,12 +551,12 @@ Y.extend(MEDIABOX, Y.Base, {
         var str = '';
         if (likes > 0) {
             str = '&nbsp;&bull;&nbsp;';
-            str += M.str.mod_mediagallery.likedby+': ';
+            str += M.str.mod_mediagallery.likedby + ': ';
             if (likedbyme) {
                 likes = likes - 1;
                 str += M.str.mod_mediagallery.you + ', ';
             }
-            str += likes+' ';
+            str += likes + ' ';
             if (likes !== 1) {
                 str += M.str.mod_mediagallery.others;
             } else {

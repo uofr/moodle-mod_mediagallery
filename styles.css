@@ -59,8 +59,19 @@
 
 .path-mod-mediagallery .gallery_list_item .title h6,
 .path-mod-mediagallery .item .title h6 {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100px;
     margin-top: 0px;
     margin-bottom: 0px;
+}
+
+.path-mod-mediagallery .gallery_list_item .title h6:hover,
+.path-mod-mediagallery .item .title h6:hover {
+    white-space: initial;
+    overflow: visible;
+    word-wrap: break-word;
 }
 
 .path-mod-mediagallery .gallery_list_item .controls,
@@ -76,6 +87,16 @@
 .path-mod-mediagallery .gallery_items .controls .moodle-actionmenu,
 .path-mod-mediagallery .gallery_list_item .controls .moodle-actionmenu {
     float: right;
+}
+
+.path-mod-mediagallery .gallery_items .controls .moodle-actionmenu .icon,
+.path-mod-mediagallery .gallery_list_item .controls .moodle-actionmenu .icon {
+    margin-right: 0;
+}
+
+.path-mod-mediagallery .gallery_items .controls .moodle-actionmenu .dropdown-toggle::after,
+.path-mod-mediagallery .gallery_list_item .controls .moodle-actionmenu .dropdown-toggle::after {
+    display: none;
 }
 
 .path-mod-mediagallery div.grid_item {
@@ -478,7 +499,7 @@ body.mediaboxactive .gallery .mediaplugin object {
 }
 
 #mediabox-overlay {
-    position:absolute;
+    position: fixed;
     top: 0;
     left: 0;
     z-index: 9999;
@@ -802,4 +823,9 @@ body.mediaboxactive .gallery .mediaplugin object {
 
 .path-mod-mediagallery .gallery_items.editing .action-icon img.smallicon {
 	vertical-align: middle;
+}
+
+.path-mod-mediagallery #mediabox-content .mediaplugin {
+    width: auto !important;
+    height: auto !important;
 }

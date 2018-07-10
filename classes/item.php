@@ -16,6 +16,8 @@
 
 namespace mod_mediagallery;
 
+defined('MOODLE_INTERNAL') || die();
+
 class item extends base {
 
     protected $context;
@@ -323,7 +325,7 @@ class item extends base {
         $mimetype = $file->get_mimetype();
         $isjpegortiff = $mimetype == 'image/jpeg' || $mimetype == 'image/tiff';
 
-        if ($isjpegortiff && ($exif = exif_read_data($tempfile))) {
+        if ($isjpegortiff && function_exists('exif_read_data') && ($exif = exif_read_data($tempfile))) {
             $ort = 1;
             if (isset($exif['IFD0']['Orientation'])) {
                 $ort = $exif['IFD0']['Orientation'];
@@ -447,15 +449,14 @@ class item extends base {
         global $CFG;
         $embed = '';
         if ($id = $this->get_youtube_videoid()) {
-            $embed = "http://www.youtube.com/embed/{$id}";
+            $embed = "https://www.youtube.com/embed/{$id}";
         } else if ($this->type() == self::TYPE_IMAGE) {
             $embed = $this->get_image_url_by_type();
         } else {
             if (!empty($this->objectid)) {
                 $embed = $this->get_box_url();
             } else if ($file = $this->get_file()) {
-                $embed = file_encode_url($CFG->wwwroot.'/pluginfile.php',
-                    '/'.$this->get_context()->id.'/mod_mediagallery/item/'.$this->record->id.'/'.$file->get_filename());
+                $embed = \moodle_url::make_pluginfile_url($this->get_context()->id, 'mod_mediagallery', 'item', $this->record->id, '/', $file->get_filename());
             }
         }
         return $embed;
@@ -602,7 +603,7 @@ class item extends base {
             }
             preg_match('/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^\?&"\'>]+)/', $url, $matches);
             if (isset($matches[5])) {
-                return new \moodle_url('http://img.youtube.com/vi/'.$matches[5].'/0.jpg');
+                return new \moodle_url('https://img.youtube.com/vi/'.$matches[5].'/0.jpg');
             }
         }
 
@@ -620,10 +621,9 @@ class item extends base {
             // If its not an image, we want to display a moodle filetype icon, so we need to use the item path.
             $type = 'item';
         }
-        $path = file_encode_url($CFG->wwwroot.'/pluginfile.php',
-            '/'.$context->id.'/mod_mediagallery/'.$type.'/'.$this->record->id.'/'.$file->get_filename());
+        $path = \moodle_url::make_pluginfile_url($this->get_context()->id, 'mod_mediagallery', $type, $this->record->id, '/', $file->get_filename());
         if ($preview && $type == 'item') {
-            $path .= '?preview=bigthumb';
+            $path->param('preview', 'bigthumb');
         }
 
         if (!$preview && $this->type() != self::TYPE_IMAGE) {
@@ -649,7 +649,7 @@ class item extends base {
             }
             preg_match('/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^\?&"\'>]+)/', $url, $matches);
             if (isset($matches[5])) {
-                return new \moodle_url('http://img.youtube.com/vi/'.$matches[5].'/0.jpg');
+                return new \moodle_url('https://img.youtube.com/vi/'.$matches[5].'/0.jpg');
             }
 
             // Handle FILE_EXTERNAL repository content.
@@ -680,12 +680,11 @@ class item extends base {
             // If its not an image, we want to display a moodle filetype icon, so we need to use the item path.
             $urltype = 'item';
         }
-        $path = file_encode_url($CFG->wwwroot.'/pluginfile.php',
-            '/'.$context->id.'/mod_mediagallery/'.$urltype.'/'.$this->record->id.'/'.$file->get_filename());
+        $path = \moodle_url::make_pluginfile_url($this->get_context()->id, 'mod_mediagallery', $urltype, $this->record->id, '/', $file->get_filename());
 
         // For audio/video files, this has moodle display a filetype icon.
         if ($type == 'thumbnail' && $urltype == 'item' && !$isimagetype) {
-            $path .= '?preview=bigthumb';
+            $path->param('preview', 'bigthumb');
         }
 
         if ($type != 'thumbnail' && $this->type() != self::TYPE_IMAGE) {
@@ -817,7 +816,6 @@ class item extends base {
             'video' => self::TYPE_VIDEO,
         );
 
-
         if ($mimetype == 'document/unknown' && !empty($this->objectid)) {
             $ref = $this->file->get_reference_details();
             if (isset($ref->type) && in_array($ref->type, array('audio', 'image', 'video'))) {
@@ -869,7 +867,7 @@ class item extends base {
             $userid = $USER->id;
         }
 
-        if ($userid == $this->record->userid) {
+        if ($userid == $this->record->userid || has_capability('mod/mediagallery:manage', $this->get_context(), $userid)) {
             return true;
         }
 
