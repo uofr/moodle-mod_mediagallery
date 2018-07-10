@@ -191,10 +191,9 @@ function xmldb_mediagallery_upgrade($oldversion) {
             $rs = $DB->get_recordset('mediagallery');
             foreach ($rs as $record) {
                 $types = explode(',', $record->gallerytype);
-                // "1" means default to image focus.
-                $focus = !empty($types) ? $types[0] : 1;
+                $focus = !empty($types) ? $types[0] : \mod_mediagallery\collection::TYPE_IMAGE;
                 if (empty($focus)) {
-                    $focus = 1;
+                    $focus = \mod_mediagallery\collection::TYPE_IMAGE;
                 }
                 $record->galleryfocus = $focus;
                 $DB->update_record('mediagallery', $record);
@@ -424,7 +423,7 @@ function xmldb_mediagallery_upgrade($oldversion) {
         $table = new xmldb_table('mediagallery_item');
         $field = new xmldb_field('copyright_video_id', XMLDB_TYPE_CHAR, '36', null, null, null, null, 'theme_id');
 
-        // Launch rename field summary
+        // Launch rename field summary.
         if ($dbman->field_exists($table, $field)) {
             $dbman->rename_field($table, $field, 'copyright_id');
         }

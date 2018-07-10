@@ -16,6 +16,8 @@
 
 namespace mod_mediagallery;
 
+defined('MOODLE_INTERNAL') || die();
+
 require_once(dirname(__FILE__).'/../locallib.php');
 
 class gallery extends base {
@@ -245,6 +247,16 @@ class gallery extends base {
                     'files' => $files,
                     'gallery' => $this,
                 );
+
+                // Replacing empty caption with image filename/video url for
+                // all items in gallery on mouseover for better user experience.
+                if (empty($record->caption)) {
+                    if (!empty($filelist[$record->id])) {
+                        $record->caption = $filelist[$record->id]['item']->get_filename();
+                    } else if (!empty($record->externalurl)) {
+                        $record->caption = $record->externalurl;
+                    }
+                }
                 $items[$record->id] = new item($record, $options);
             }
         }
@@ -299,7 +311,8 @@ class gallery extends base {
     public function get_thumbnail() {
         global $DB, $OUTPUT;
         $record = false;
-        if (empty($this->record->thumbnail) || (!$record = $DB->get_record('mediagallery_item', array('id' => $this->record->thumbnail)))) {
+        if (empty($this->record->thumbnail) ||
+            (!$record = $DB->get_record('mediagallery_item', array('id' => $this->record->thumbnail)))) {
             // The thumbnail item got deleted, pick the first item as the new thumbnail.
             $items = $this->get_items();
             if (empty($items)) {
@@ -314,7 +327,7 @@ class gallery extends base {
             }
         }
         if (!$record) {
-            return $OUTPUT->pix_url('galleryicon', 'mediagallery')->out(false);
+            return $OUTPUT->image_url('galleryicon', 'mediagallery')->out(false);
             return null;
         }
         $item = new item($record, array('gallery' => $this));
@@ -414,7 +427,7 @@ class gallery extends base {
             $userid = $USER->id;
         }
 
-        if ($userid == $this->record->userid) {
+        if ($userid == $this->record->userid || has_capability('mod/mediagallery:manage', $this->get_context(), $userid)) {
             return true;
         }
 

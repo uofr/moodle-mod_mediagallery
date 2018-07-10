@@ -17,14 +17,14 @@
 /**
  * Provide interface for AJAX mod_mediagallery requests.
  *
- * @package    mod_mediagallery
- * @copyright  NetSpot Pty Ltd
- * @author     Adam Olley <adam.olley@netspot.com.au>
+ * @package   mod_mediagallery
+ * @copyright Copyright (c) 2017 Blackboard Inc.
+ * @author    Adam Olley <adam.olley@netspot.com.au>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-if (!defined('AJAX_SCRIPT')) {
-    define('AJAX_SCRIPT', true);
-}
+define('AJAX_SCRIPT', true);
+
 require_once(dirname(__FILE__) . '/../../config.php');
 require_once($CFG->dirroot.'/mod/mediagallery/locallib.php');
 
@@ -63,16 +63,13 @@ switch($requestmethod) {
             echo json_encode($info);
         } else if ($action == 'embed') {
             $output = $PAGE->get_renderer('mod_mediagallery')->embed_html($object);
-            preg_match('#(<span.*</span>)#s', $output, $matches);
             $data = new stdClass();
-            $data->html = isset($matches[1]) ? $matches[1] : null;
+            $data->html = $output;
 
-            preg_match('#M.util.add_(audio|video)_player\("(\w*)",[\s\n]?"(.*)"#s', $output, $matches);
-            $data->id = isset($matches[2]) ? $matches[2] : null;
-            $data->url = isset($matches[3]) ? str_replace('\/', '/', $matches[3]) : null;
-            $data->type = isset($matches[1]) ? $matches[1] : $object->type(true);
+            $data->id = null;
+            $data->url = null;
+            $data->type = $object->type(true);
             $data->objectid = $object->objectid;
-            $data->flow = !empty($matches[1]);
             echo json_encode($data);
         } else if ($action == 'metainfo') {
             $info = $object->get_structured_metainfo();

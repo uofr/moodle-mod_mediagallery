@@ -15,11 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Restore steps for mod_mediagallery
+ *
  * @package    mod_mediagallery
  * @copyright  2014 NetSpot Pty Ltd
  * @author     Adam Olley <adam.olley@netspot.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Define all the restore steps that will be used by the restore_mediagallery_activity_task
@@ -64,10 +68,9 @@ class restore_mediagallery_activity_structure_step extends restore_activity_stru
         $data->timemodified = $this->apply_date_offset($data->timemodified);
         if (isset($data->gallerytype)) {
             $types = explode(',', $data->gallerytype);
-            // "1" means default to image focus.
-            $focus = !empty($types) ? $types[0] : 1;
+            $focus = !empty($types) ? $types[0] : \mod_mediagallery\collection::TYPE_IMAGE;
             if (empty($focus)) {
-                $focus = 1;
+                $focus = \mod_mediagallery\collection::TYPE_IMAGE;
             }
             $data->galleryfocus = $focus;
         }
