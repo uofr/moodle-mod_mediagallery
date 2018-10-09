@@ -74,6 +74,11 @@
     word-wrap: break-word;
 }
 
+.path-mod-mediagallery .gallery_list_item .title:hover .tooltiptext,
+.path-mod-mediagallery .item .title:hover .tooltiptext {
+    visibility: visible;
+}
+
 .path-mod-mediagallery .gallery_list_item .controls,
 .path-mod-mediagallery .item .controls {
     padding: 0.25em;
