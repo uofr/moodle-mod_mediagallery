@@ -66,7 +66,26 @@
     margin-top: 0px;
     margin-bottom: 0px;
 }
+.path-mod-mediagallery .gallery_list_item .title .tooltiptext,
+.path-mod-mediagallery .item .title .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
+    
+    position: absolute;
+    z-index: 1;
+    
+    width: 120px;
+}
 
+.path-mod-mediagallery .gallery_list_item .title:hover .tooltiptext,
+.path-mod-mediagallery .item .title:hover .tooltiptext {
+    visibility: visible;
+}
 .path-mod-mediagallery .gallery_list_item .title h6:hover,
 .path-mod-mediagallery .item .title h6:hover {
     white-space: initial;
@@ -616,6 +635,7 @@ body.mediaboxactive .gallery .mediaplugin object {
 #mediabox-comments {
     float: left;
     margin: 5px;
+    width: 100%;
 }
 
 #mediabox-comments .mdl-left {
