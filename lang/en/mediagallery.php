@@ -57,6 +57,7 @@ $string['carousel'] = 'Carousel';
 $string['choosecontent'] = 'Select either a file to upload, or a URL in the options below.';
 $string['close'] = 'Close';
 $string['collection'] = 'Collection';
+$string['collection_help'] = 'The collection to search from.';
 $string['collectionwasdeleted'] = 'Sorry, this collection no longer exists and has been removed from this course.';
 
 // Collection modes.
@@ -312,6 +313,9 @@ $string['showall'] = 'Show all';
 $string['synclastcompleted'] = 'Sync last completed';
 $string['syncwiththebox'] = 'Sync from theBox';
 $string['tags'] = 'Tags';
+$string['tagarea_mediagallery'] = 'Media collections';
+$string['tagarea_mediagallery_gallery'] = 'Media galleries';
+$string['tagarea_mediagallery_item'] = 'Media items';
 $string['theboxisnotenabled'] = 'Unfortunately, this collection is not currently accessible as it\'s linked to theBox, which is not currently enabled.';
 $string['thumbnail'] = 'Thumbnail';
 $string['thumbnail_help'] = 'You can select an image to use as the thumbnail in the gallery for this item.
