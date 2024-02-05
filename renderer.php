@@ -597,7 +597,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         if ($link) {
             $class = $actionmenu ? 'menu-action' : 'maction btn btn-default';
             $linkclass = trim($linkclass.' '.$class);
-			$text = html_writer::span($text,array('class' => 'menu-action-text'));
+			$text = html_writer::span($text, '', array('class' => 'menu-action-text'));
             $o = html_writer::link($link, $icon.$text, array('class' => $linkclass));
         } else {
             $o = html_writer::span($text);
