@@ -241,7 +241,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * Render the action icons for a gallery.
      *
      * @param \mod_mediagallery\gallery $gallery
-     * @return string
+     * @return string[]
      */
     public function gallery_list_item_actions($gallery) {
         $actions = array();
@@ -340,7 +340,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * Render a gallery.
      *
      * @param rengallery $renderable Gallery renderable details.
-     * @return void
+     * @return string
      */
     public function render_gallery(rengallery $renderable) {
 		global $DB, $CFG, $cm;
@@ -1016,7 +1016,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         $gb = ' ' . get_string('sizegb');
         $mb = ' ' . get_string('sizemb');
         $kb = ' ' . get_string('sizekb');
-        $b  = ' ' . get_string('sizeb');
+        $b = ' ' . get_string('sizeb');
         if ($size >= 1073741824) {
             $size = number_format(round($size / 1073741824 * 10, 1) / 10, 1) . $gb;
         } else if ($size >= 1048576) {
@@ -1043,7 +1043,7 @@ class mod_mediagallery_standard_renderer extends mod_mediagallery_renderer {
      * Render the action icons for a gallery.
      *
      * @param \mod_mediagallery\gallery $gallery
-     * @return string
+     * @return string[]
      */
     public function gallery_list_item_actions($gallery) {
         $actions = parent::gallery_list_item_actions($gallery);
