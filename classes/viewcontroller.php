@@ -122,10 +122,24 @@ class viewcontroller {
 		
 		$output = $this->renderer->heading($this->collection->name);
 		
-        if ($this->collection->intro) {
-            $output .= $this->renderer->box(format_module_intro('mediagallery', $this->collection, $this->cm->id),
-                'box generalbox mod_introbox', 'intro');
+       global $CFG;
+
+        $output = '';
+        $output .= groups_print_activity_menu($this->cm, $this->pageurl, true);
+
+    
+        if ($CFG->branch < 400) {
+            $output .= $this->renderer->heading($this->collection->name);
+
+            if (trim(strip_tags($this->collection->intro, '<img>'))) {
+                $output .= $this->renderer->box(
+                    format_module_intro('mediagallery', $this->collection, $this->cm->id),
+                    'box generalbox mod_introbox',
+                    'intro'
+                );
+            }
         }
+
 
         $galleries = $this->collection->get_visible_galleries();
         $renderable = new output\collection\renderable($this->collection, $galleries);
