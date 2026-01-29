@@ -267,6 +267,7 @@ M.mod_mediagallery.base = {
             [M.str.moodle.username, data.username],
             [M.str.moodle.group, data.groupname],
             [M.str.moodle.description, data.description],
+            [M.str.mod_mediagallery.moralrights, data.moralrights == "1" ? M.str.moodle.yes : M.str.moodle.no],
             [M.str.mod_mediagallery.copyright, data.copyrightformatted],
             [M.str.mod_mediagallery.originalauthor, data.originalauthor],
             [M.str.mod_mediagallery.productiondate, data.productiondateformatted],
@@ -792,50 +793,46 @@ M.mod_mediagallery.dragdrop = {
 
     CSS : {
         CONTAINER : '.gallery_items',
-        ITEMS : '.gallery_items .item',
+        ITEMS : '.gallery_items > .card',  
         CONTROLCONTAINER : '.controls',
-        HANDLE : '.controls :first-child',
+        HANDLE : '.controls :first-child',  
         HANDLELINK : '.controls .move'
     },
 
     init : function() {
-        var MOVEICON = {
-            pix: "i/move_2d",
-            component: 'moodle'
-        };
-
-        // Static Vars.
+        var MOVEICON = { pix: "i/move_2d", component: 'moodle' };
         var goingUp = false, lastX = 0, lastY = 0;
 
         var list = Y.Node.all(this.CSS.ITEMS);
-        list.each(function(v) {
+        list.each(function(card) {
             var CSS = M.mod_mediagallery.dragdrop.CSS;
-            // Replace move link and image with move_2d image.
+
+            // Add move icon
             var imagenode = Y.Node.create('<img class="smallicon move action-icon" title="' + M.str.moodle.move + '"/>');
             imagenode.setAttribute('src', M.util.image_url(MOVEICON.pix, MOVEICON.component));
             imagenode.addClass('cursor');
-            v.one(CSS.CONTROLCONTAINER).prepend(imagenode);
+            var handle = card.one(CSS.CONTROLCONTAINER);
+            if (handle) { handle.prepend(imagenode); }
 
+            // Make the card draggable
             var dd = new Y.DD.Drag({
-                node: v,
-                target: {
-                    padding: '0 0 0 20'
-                }
-            }).plug(Y.Plugin.DDProxy, {
-                moveOnEnd: false
-            }).plug(Y.Plugin.DDConstrained, {
-                constrain2node: CSS.CONTAINER
-            });
-            dd.addHandle(CSS.HANDLE);
+                node: card,
+                target: { padding: '0 0 0 20' }
+            }).plug(Y.Plugin.DDProxy, { moveOnEnd: false })
+              .plug(Y.Plugin.DDConstrained, { constrain2node: CSS.CONTAINER });
+
+            // Set the handle
+            if (card.one(CSS.HANDLE)) {
+                dd.addHandle(card.one(CSS.HANDLE));
+            }
         });
 
+        // Drag start styling
         Y.DD.DDM.on('drag:start', function(e) {
             e.preventDefault();
-            // Get our drag object.
             var drag = e.target;
-            // Set some styles here.
             drag.get('node').setStyle('opacity', '.25');
-            drag.get('dragNode').addClass('mod_mediagallery item');
+            drag.get('dragNode').addClass('mod_mediagallery card');
             drag.get('dragNode').set('innerHTML', drag.get('node').get('innerHTML'));
             drag.get('dragNode').setStyles({
                 opacity: '.5',
@@ -844,66 +841,51 @@ M.mod_mediagallery.dragdrop = {
             });
         });
 
+        // Drag end
         Y.DD.DDM.on('drag:end', function(e) {
             var drag = e.target;
-            // Put our styles back.
-            drag.get('node').setStyles({
-                visibility: '',
-                opacity: '1'
-            });
+            drag.get('node').setStyles({ visibility: '', opacity: '1' });
             M.mod_mediagallery.dragdrop.save();
         });
 
+        // Track drag direction
         Y.DD.DDM.on('drag:drag', function(e) {
-            // Get the last y point.
             var x = e.target.lastXY[0];
-            var y = e.target.lastXY[1];
-            if (x < lastX) {
-                // We are going up.
-                goingUp = true;
-            } else {
-                // We are going down.
-                goingUp = false;
-            }
-            // Cache for next check.
+            goingUp = (x < lastX);
             lastX = x;
-            lastY = y;
-
+            lastY = e.target.lastXY[1];
         });
 
-        Y.DD.DDM.on('drop:over', function(e) {
-            // Get a reference to our drag and drop nodes.
+        // Drop logic
+Y.DD.DDM.on('drop:over', function(e) {
+    var drag = e.drag.get('node'),
+        drop = e.drop.get('node');
+
+    if (drop.hasClass('card')) {
+        if (!goingUp) {
+            var next = drop.get('nextSibling');
+            if (next) {
+                drop = next;
+                drop.get('parentNode').insertBefore(drag, drop);
+            } else {
+                // last card, append to container
+                drop.get('parentNode').appendChild(drag);
+            }
+        } else {
+            drop.get('parentNode').insertBefore(drag, drop);
+        }
+        e.drop.sizeShim();
+    }
+});
+
+
+        // Ensure drag goes into container if not over a card
+        Y.DD.DDM.on('drag:drophit', function(e) {
             var drag = e.drag.get('node'),
                 drop = e.drop.get('node');
 
-            var list = Y.all(M.mod_mediagallery.dragdrop.CSS.ITEMS);
-            if (list.indexOf(drop) < list.indexOf(drag)) {
-                goingUp = true;
-            } else {
-                goingUp = false;
-            }
-
-            if (drop.hasClass('item')) {
-                // Are we not going up?
-                if (!goingUp) {
-                    drop = drop.get('nextSibling');
-                }
-                // Add the node to this list.
-                e.drop.get('node').get('parentNode').insertBefore(drag, drop);
-                // Resize this nodes shim, so we can drop on it later.
-                e.drop.sizeShim();
-            }
-        });
-
-        Y.DD.DDM.on('drag:drophit', function(e) {
-            var drop = e.drop.get('node'),
-                drag = e.drag.get('node');
-
-            // If we are not on an li, we must have been dropped on a ul.
-            if (!drop.hasClass('item')) {
-                if (!drop.contains(drag)) {
-                    drop.appendChild(drag);
-                }
+            if (!drop.hasClass('card') && !drop.contains(drag)) {
+                drop.appendChild(drag);
             }
         });
     },

@@ -342,3 +342,6 @@ $string['visibleother_help'] = 'Define the gallery as visible to other users aft
 $string['you'] = 'you';
 $string['youmusttypedelete'] = 'You must type DELETE to confirm deletion.';
 $string['youtubeurl'] = 'YouTube URL';
+$string['backtogalleries'] = 'Gallery collection';
+$string['backtoediting'] = 'Back to editing';
+

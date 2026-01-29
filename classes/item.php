@@ -579,21 +579,23 @@ class item extends base {
 
         return $info;
     }
-
-    private function get_youtube_videoid() {
-        $id = null;
-        if ($this->record->externalurl) {
-            $url = $this->record->externalurl;
-            if (strpos($this->record->externalurl, '#') !== false) {
-                $url = substr($this->record->externalurl, 0, strpos($this->record->externalurl, '#'));
-            }
-            preg_match('/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^\?&"\'>]+)/', $url, $matches);
-            if (isset($matches[5])) {
-                $id = $matches[5];
-            }
+private function get_youtube_videoid() {
+    $id = null;
+    if ($this->record->externalurl) {
+        $url = $this->record->externalurl;
+        if (strpos($url, '#') !== false) {
+            $url = substr($url, 0, strpos($url, '#'));
         }
-        return $id;
+
+        // Updated regex to include /shorts/
+        preg_match('/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|embed\/|v\/|shorts\/))([^\?&"\'>]+)/', $url, $matches);
+        if (isset($matches[4])) {
+            $id = $matches[4];
+        }
     }
+    return $id;
+}
+
 
     public function get_source() {
         if (empty($this->record->externalurl) && empty($this->record->objectid)) {
@@ -653,62 +655,80 @@ class item extends base {
     }
 
     public function get_image_url_by_type($type = 'item') {
-        global $CFG;
+    global $CFG;
 
-        $context = $this->get_context();
+    $context = $this->get_context();
 
-        if ($this->record->externalurl) {
-            $url = $this->record->externalurl;
-            if (strpos($this->record->externalurl, '#') !== false) {
-                $url = substr($this->record->externalurl, 0, strpos($this->record->externalurl, '#'));
+    if ($this->record->externalurl) {
+        $url = $this->record->externalurl;
+
+        // Remove fragment (#) if present.
+        if (strpos($url, '#') !== false) {
+            $url = substr($url, 0, strpos($url, '#'));
+        }
+
+        // Improved regex to capture Shorts URLs and regular YouTube links.
+        preg_match(
+            '/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/))([^\?&"\'>]+)/',
+            $url,
+            $matches
+        );
+
+        if (!empty($matches[1])) {
+            $videoid = $matches[1];
+            // Always return the default thumbnail (works for Shorts too).
+            return new \moodle_url("https://img.youtube.com/vi/{$videoid}/0.jpg");
+        }
+
+        // Handle FILE_EXTERNAL repository content.
+        if (preg_match('#^'.$CFG->wwwroot.'/repository/([a-z][a-z0-9]*)/#', $url, $matches) && !empty($matches)) {
+            require_once("{$CFG->dirroot}/repository/{$matches[1]}/lib.php");
+            $class = "repository_{$matches[1]}";
+            if (method_exists($class, "get_mediagallery_link")) {
+                return $class::get_mediagallery_link($this->record->externalurl, $type);
             }
-            preg_match('/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^\?&"\'>]+)/', $url, $matches);
-            if (isset($matches[5])) {
-                return new \moodle_url('https://img.youtube.com/vi/'.$matches[5].'/0.jpg');
-            }
-
-            // Handle FILE_EXTERNAL repository content.
-            if (preg_match('#^'.$CFG->wwwroot.'/repository/([a-z][a-z0-9]*)/#', $url, $matches) && !empty($matches)) {
-                require_once("{$CFG->dirroot}/repository/{$matches[1]}/lib.php");
-                $class = "repository_{$matches[1]}";
-                if (method_exists($class, "get_mediagallery_link")) {
-                    return $class::get_mediagallery_link($this->record->externalurl, $type);
-                }
-                return $this->record->externalurl;
-            }
+            return $this->record->externalurl;
         }
-
-        // Fetch the box url for thumbnails of images and video. Documents and audio don't need it.
-        if (!empty($this->objectid) && ($this->type() !== self::TYPE_AUDIO && $this->type() !== null || $type == 'item')) {
-            return $this->get_box_url($type);
-        }
-
-        $urltype = $type;
-        if (!$file = $this->get_stored_file_by_type($type)) {
-            if (!$file = $this->get_stored_file_by_type()) {
-                return null;
-            }
-            $urltype = 'item';
-        }
-        $isimagetype = file_mimetype_in_typegroup($file->get_mimetype(), 'web_image');
-        if (!$isimagetype) {
-            // If its not an image, we want to display a moodle filetype icon, so we need to use the item path.
-            $urltype = 'item';
-        }
-        $path = \moodle_url::make_pluginfile_url($this->get_context()->id, 'mod_mediagallery', $urltype, $this->record->id, '/',
-                                                $file->get_filename());
-
-        // For audio/video files, this has moodle display a filetype icon.
-        if ($type == 'thumbnail' && $urltype == 'item' && !$isimagetype) {
-            $path->param('preview', 'bigthumb');
-        }
-
-        if ($type != 'thumbnail' && $this->type() != self::TYPE_IMAGE) {
-            $path = $this->get_image_url_by_type('thumbnail');
-        }
-
-        return $path;
     }
+
+    // Fetch the box url for thumbnails of images and video.
+    if (!empty($this->objectid) && ($this->type() !== self::TYPE_AUDIO && $this->type() !== null || $type == 'item')) {
+        return $this->get_box_url($type);
+    }
+
+    $urltype = $type;
+    if (!$file = $this->get_stored_file_by_type($type)) {
+        if (!$file = $this->get_stored_file_by_type()) {
+            return null;
+        }
+        $urltype = 'item';
+    }
+    $isimagetype = file_mimetype_in_typegroup($file->get_mimetype(), 'web_image');
+    if (!$isimagetype) {
+        $urltype = 'item';
+    }
+
+    $path = \moodle_url::make_pluginfile_url(
+        $this->get_context()->id,
+        'mod_mediagallery',
+        $urltype,
+        $this->record->id,
+        '/',
+        $file->get_filename()
+    );
+
+    // For audio/video files, use moodle display filetype icon.
+    if ($type == 'thumbnail' && $urltype == 'item' && !$isimagetype) {
+        $path->param('preview', 'bigthumb');
+    }
+
+    if ($type != 'thumbnail' && $this->type() != self::TYPE_IMAGE) {
+        $path = $this->get_image_url_by_type('thumbnail');
+    }
+
+    return $path;
+}
+
 
     public function get_like_count() {
         global $DB;

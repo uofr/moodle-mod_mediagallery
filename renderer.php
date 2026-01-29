@@ -103,17 +103,17 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         ), 'moodle');
         $this->page->requires->string_for_js('thisdirection', 'core_langconfig');
 
-        $canedit = $controller->gallery && $controller->gallery->user_can_contribute();
-        if ($controller->gallery && $canedit) {
-            if (!$controller->options['editing']) {
-                $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id, 'editing' => 1));
-                $this->page->set_button($this->output->single_button($url, get_string('turneditingon', 'core', 'get')));
-            } else {
-                $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id));
-                $this->page->set_button($this->output->single_button($url, get_string('turneditingoff', 'core', 'get')));
-                $this->page->requires->yui_module('moodle-mod_mediagallery-dragdrop', 'M.mod_mediagallery.dragdrop.init');
-            }
-        }
+       // $canedit = $controller->gallery && $controller->gallery->user_can_contribute();
+        //if ($controller->gallery && $canedit) {
+          //  if (!$controller->options['editing']) {
+              //  $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id, 'editing' => 1));
+              //  $this->page->set_button($this->output->single_button($url, get_string('turneditingon', 'core', 'get')));
+         //   } else {
+              //  $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id));
+             //   $this->page->set_button($this->output->single_button($url, get_string('turneditingoff', 'core', 'get')));
+             //   $this->page->requires->yui_module('moodle-mod_mediagallery-dragdrop', 'M.mod_mediagallery.dragdrop.init');
+          //  }
+        //}
         return $this->output->header();
     }
 
@@ -342,76 +342,120 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * @param rengallery $renderable Gallery renderable details.
      * @return string
      */
-    public function render_gallery(rengallery $renderable) {
-		global $DB, $CFG, $cm;
+   public function render_gallery(rengallery $renderable) {
+    global $DB, $CFG, $cm;
 
-        $gallery = $renderable->gallery;
-		
-		$o = $this->output->heading(format_string($gallery->get_collection()->name),4);
-		
-        $o .= $this->gallery_heading($gallery);
+    $gallery = $renderable->gallery;
 
-        if (!$renderable->nosample) {
-            $class = '';
-            $pix = 't/check';
-            if (!$gallery->moral_rights_asserted()) {
-                $class = ' no';
-                $pix = 'i/invalid';
-            }
-            $indicator = html_writer::empty_tag('img', array('src' => $this->output->image_url($pix)));
-            //$o .= html_writer::tag('div', $indicator, array('class' => 'moralrights'.$class));
-            //$link = html_writer::link('#', get_string('sample', 'mediagallery'), array('id' => 'mg_sample'));
-            //$o .= html_writer::tag('div', $link, array('class' => 'moralrights_title'));
-        }
-		
-		if ($user = $DB->get_record('user', array('id' => $gallery->userid), 'id, firstname, lastname')) {
-			$linkurl = new moodle_url('/user/profile.php', array('id' => $gallery->userid));
-            $o .= html_writer::tag('div', html_writer::link($linkurl, html_writer::empty_tag('img', array('src' => $CFG->wwwroot.'/user/pix.php/'.$gallery->userid.'/f2.jpg','class'=>'img-rounded','height'=>23,'width'=>23, 'title' => 'Profile picture of '.$user->firstname.' '.$user->lastname, 'alt' => 'Profile picture of '.$user->firstname.' '.$user->lastname )).' '.$user->firstname.' '.$user->lastname), array('class' => 'gallery-ownername'));
-        }
+    // ---------- BUTTONS ----------
+    // Back to main galleries (always points to main gallery view page)
+    $backtogalleriesurl = new \moodle_url('/mod/mediagallery/view.php', ['id' => $cm->id]);
+    $backtogalleriesbutton = $this->output->single_button(
+        $backtogalleriesurl,
+        get_string('backtogalleries', 'mod_mediagallery'),
+        'get'
+    );
 
-        if ($gallery->mode != 'youtube' && !$renderable->editing) {
-            $currentfocus = $gallery->type();
-            if (!is_null($renderable->focus)) {
-                $currentfocus = $renderable->focus;
-            }
-            $o .= $this->focus_selector($currentfocus);
-        }
+    // Editing check
+    if (!empty($renderable->editing)) {
+        // Only show back to galleries button
+        $buttons = html_writer::div(
+            $backtogalleriesbutton,
+            'd-flex justify-content-end gap-2 mb-3'
+        );
+    } else {
+        // Normal viewing: show two buttons
+        $backtoediturl = new \moodle_url('/mod/mediagallery/view.php', [
+            'g' => $gallery->id,
+            'editing' => 1
+        ]);
+        $backtoeditbutton = $this->output->single_button(
+            $backtoediturl,
+            get_string('backtoediting', 'mod_mediagallery'), // "Back to editing gallery"
+            'get'
+        );
 
-        if ($renderable->galleryview == gallery::VIEW_GRID && !$renderable->editing) {
-            $o .= $this->mediasize_selector($renderable->mediasize);
-        }
-
-        if ($renderable->editing) {
-            $o .= $this->gallery_editing_page($gallery);
-        } else {
-            $o .= $this->gallery_viewing_page($renderable);
-        }
-
-        $tags = $gallery->get_tags();
-        if (!empty($tags)) {
-            $o .= html_writer::div($this->tag_list($tags, null, 'gallery-tags'), 'taglist');
-        }
-
-        if ($renderable->editing) {
-            $o .= $this->gallery_editing_actions($gallery);
-            if ($gallery->mode == 'thebox' && !empty($renderable->syncstamp)) {
-                $o .= $this->last_synced($renderable->syncstamp);
-            }
-
-        }
-
-        if (!empty($renderable->comments) && !$renderable->editing) {
-            $o .= html_writer::div($renderable->comments->output(true), 'commentarea');
-        }
-        // If the user normally could edit, but can't currently due to read-only time or submission, display export link.
-        if ($gallery->user_can_edit(null, true) && !$gallery->user_can_edit()) {
-            $exporturl = new moodle_url('/mod/mediagallery/export.php', array('g' => $gallery->id));
-            $o .= html_writer::div(html_writer::link($exporturl, get_string('exportgallery', 'mediagallery')), 'exportlink');
-        }
-        $o .= html_writer::div('', 'clearfix');
-        return $o;
-
+        $buttons = html_writer::div(
+            $backtoeditbutton . $backtogalleriesbutton,
+            'd-flex justify-content-end gap-2 mb-3'
+        );
     }
+
+    $o = $buttons;
+
+    $o .= $this->gallery_heading($gallery);
+
+    if ($user = $DB->get_record('user', ['id' => $gallery->userid], 'id, firstname, lastname')) {
+        $linkurl = new moodle_url('/user/profile.php', ['id' => $gallery->userid]);
+        $o .= html_writer::tag('div',
+            html_writer::link(
+                $linkurl,
+                html_writer::empty_tag('img', [
+                    'src' => $CFG->wwwroot . '/user/pix.php/' . $gallery->userid . '/f2.jpg',
+                    'class' => 'img-rounded me-1',
+                    'height' => 23,
+                    'width' => 23,
+                    'title' => 'Profile picture of ' . $user->firstname . ' ' . $user->lastname,
+                    'alt' => 'Profile picture of ' . $user->firstname . ' ' . $user->lastname
+                ]) . $user->firstname . ' ' . $user->lastname
+            ),
+            ['class' => 'gallery-ownername mb-3']
+        );
+    }
+
+
+    if ($gallery->mode != 'youtube' && !$renderable->editing) {
+        $currentfocus = $gallery->type();
+        if (!is_null($renderable->focus)) {
+            $currentfocus = $renderable->focus;
+        }
+        $o .= $this->focus_selector($currentfocus);
+    }
+
+    if ($renderable->galleryview == gallery::VIEW_GRID && !$renderable->editing) {
+        $o .= $this->mediasize_selector($renderable->mediasize);
+    }
+
+    $o .= html_writer::start_div('card mb-3');
+    $o .= html_writer::start_div('card-body');
+    //$o .= html_writer::start_div('row g-3'); 
+
+    if ($renderable->editing) {
+        $o .= $this->gallery_editing_page($gallery);
+    } else {
+        $o .= $this->gallery_viewing_page($renderable);
+    }
+
+    $o .= html_writer::end_div();
+    $o .= html_writer::end_div(); 
+    $o .= html_writer::end_div();
+
+    $tags = $gallery->get_tags();
+    if (!empty($tags)) {
+        $o .= html_writer::div($this->tag_list($tags, null, 'gallery-tags'), 'taglist');
+    }
+
+    if ($renderable->editing) {
+        $o .= $this->gallery_editing_actions($gallery);
+        if ($gallery->mode == 'thebox' && !empty($renderable->syncstamp)) {
+            $o .= $this->last_synced($renderable->syncstamp);
+        }
+    }
+
+    if (!empty($renderable->comments) && !$renderable->editing) {
+        $o .= html_writer::div($renderable->comments->output(true), 'commentarea');
+    }
+
+    if ($gallery->user_can_edit(null, true) && !$gallery->user_can_edit()) {
+        $exporturl = new moodle_url('/mod/mediagallery/export.php', ['g' => $gallery->id]);
+        $o .= html_writer::div(html_writer::link($exporturl, get_string('exportgallery', 'mediagallery')), 'exportlink');
+    }
+
+    $o .= html_writer::div('', 'clearfix');
+    return $o;
+}
+
+
 
     /**
      * Get the display of items for a gallery when not in editing mode.
@@ -419,23 +463,54 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * @param rengallery $renderable
      * @return string
      */
-    protected function gallery_viewing_page(rengallery $renderable) {
-        $o = html_writer::start_tag('div', array('class' => 'gallery'.$renderable->mediasizeclass));
-        $items = $renderable->gallery->get_items();
-        if (empty($items)) {
-            $o .= get_string('noitemsadded', 'mediagallery');
-        } else if ($renderable->galleryview == gallery::VIEW_GRID) {
-            $o .= $this->view_grid($renderable->gallery, $renderable->options);
-        } else {
-            $o .= $this->view_carousel($renderable->gallery, $renderable->options);
+   protected function gallery_viewing_page(rengallery $renderable) {
+    $o = '';
+
+    $items = $renderable->gallery->get_items();
+    if (empty($items)) {
+        $o .= get_string('noitemsadded', 'mediagallery');
+    } else if ($renderable->galleryview == gallery::VIEW_GRID) {
+        // Wrap grid items in a Bootstrap row
+        $o .= html_writer::start_div('gallery_items row g-3 ' . $renderable->mediasizeclass);
+        foreach ($items as $item) {
+            // Each item in a col + card
+            $o .= html_writer::start_div('col-sm-6 col-md-4 col-lg-3');
+            $o .= html_writer::start_div('card h-100');
+
+            // Thumbnail
+            $o .= html_writer::div(
+                html_writer::link('#', html_writer::empty_tag('img', [
+                    'src' => $item->get_image_url(),
+                    'class' => 'card-img-top img-fluid'
+                ])),
+                'gthumbnail'
+            );
+
+            // Title
+            $o .= html_writer::tag('div', html_writer::tag('h6', $item->get_title()), ['class' => 'card-body p-2']);
+
+            // Controls
+            $o .= html_writer::start_div('card-footer p-2');
+            $o .= $this->item_controls($item);
+            $o .= html_writer::end_div();
+
+            $o .= html_writer::end_div();
+            $o .= html_writer::end_div(); 
         }
-        $o .= html_writer::end_tag('div');
-        if ($otheritems = $renderable->gallery->get_items_by_type(false)) {
-            $o .= $this->output->heading(get_string('otherfiles', 'mediagallery'), 3);
-            $o .= $this->list_other_items($otheritems, $renderable->gallery);
-        }
-        return $o;
+        $o .= html_writer::end_div(); 
+    } else {
+        $o .= $this->view_carousel($renderable->gallery, $renderable->options);
     }
+
+    // Other items
+    if ($otheritems = $renderable->gallery->get_items_by_type(false)) {
+        $o .= $this->output->heading(get_string('otherfiles', 'mediagallery'), 3);
+        $o .= $this->list_other_items($otheritems, $renderable->gallery);
+    }
+
+    return $o;
+}
+
 
     /**
      * Render editing interface for a specific gallery.
@@ -443,11 +518,13 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * @param gallery $gallery The gallery to display.
      */
     public function gallery_editing_page(gallery $gallery) {
-        $o = html_writer::start_tag('div', array('class' => 'gallery_items editing'));
+          $o = html_writer::start_div('gallery_items editing');
         foreach ($gallery->get_items() as $item) {
+                 $o .= html_writer::start_div('card');
             $o .= $this->item_editing($item, $gallery);
+                  $o .= html_writer::end_div();
         }
-        $o .= html_writer::end_tag('div');
+          $o .= html_writer::end_div();
         return $o;
     }
 
@@ -472,35 +549,45 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * @param rencollection $renderable
      * @return array A list of actions.
      */
-    public function collection_editing_actions_list(rencollection $renderable) {
-        $links = array();
+public function collection_editing_actions_list(rencollection $renderable) {
+    $links = array();
 
-        if ($renderable->normallycanadd && !$renderable->readonly) {
-            if ($renderable->maxreached) {
-                $links['maxgalleries'] = $this->iconlink(get_string('maxgalleriesreached', 'mediagallery'), null);
-            } else {
-                $url = new moodle_url('/mod/mediagallery/gallery.php', array('m' => $renderable->id));
-                $links['addgallery'] = $this->iconlink(get_string('addagallery', 'mediagallery'), $url, 'plus');
-            }
+    if ($renderable->normallycanadd && !$renderable->readonly) {
+        if ($renderable->maxreached) {
+            $links['maxgalleries'] = html_writer::tag('span', get_string('maxgalleriesreached', 'mediagallery'),
+                ['class' => 'btn btn-secondary disabled']);
+        } else {
+            $url = new moodle_url('/mod/mediagallery/gallery.php', array('m' => $renderable->id));
+            $links['addgallery'] = html_writer::link($url,
+                '<i class="mgfa mgfa-fw mgfa-lg mgfa-plus me-1"></i>' . get_string('addagallery', 'mediagallery'),
+                ['class' => 'btn btn-primary me-2']);
         }
-
-        if ($renderable->linkedassigncmid && $renderable->userorgrouphasgallery) {
-            $url = new moodle_url('/mod/assign/view.php',
-                array('id' => $renderable->linkedassigncmid, 'action' => 'editsubmission'));
-            if ($renderable->submissionsopen) {
-                $str = $renderable->hassubmitted ? 'assignedit' : 'assignsubmit';
-                $links['submitassign'] = $this->iconlink(get_string($str, 'mediagallery'), $url, 'check-square');
-            } else if ($renderable->hassubmitted) {
-                $url->param('action', 'viewsubmission');
-                $links['submitassign'] = $this->iconlink(get_string('assignsubmitted', 'mediagallery'), $url, 'check-square');
-            }
-        }
-
-        $url = new moodle_url('/mod/mediagallery/view.php', array('id' => $this->page->context->instanceid, 'action' => 'search'));
-        $links['search'] = $this->iconlink(get_string('search', 'mediagallery'), $url, 'search');
-
-        return $links;
     }
+
+    if ($renderable->linkedassigncmid && $renderable->userorgrouphasgallery) {
+        $url = new moodle_url('/mod/assign/view.php',
+            array('id' => $renderable->linkedassigncmid, 'action' => 'editsubmission'));
+        if ($renderable->submissionsopen) {
+            $str = $renderable->hassubmitted ? 'assignedit' : 'assignsubmit';
+            $links['submitassign'] = html_writer::link($url,
+                '<i class="mgfa mgfa-fw mgfa-lg mgfa-check-square me-1"></i>' . get_string($str, 'mediagallery'),
+                ['class' => 'btn btn-success me-2']);
+        } else if ($renderable->hassubmitted) {
+            $url->param('action', 'viewsubmission');
+            $links['submitassign'] = html_writer::link($url,
+                '<i class="mgfa mgfa-fw mgfa-lg mgfa-check-square me-1"></i>' . get_string('assignsubmitted', 'mediagallery'),
+                ['class' => 'btn btn-success me-2 disabled']);
+        }
+    }
+
+    $url = new moodle_url('/mod/mediagallery/view.php', array('id' => $this->page->context->instanceid, 'action' => 'search'));
+    $links['search'] = html_writer::link($url,
+        '<i class="mgfa mgfa-fw mgfa-lg mgfa-search me-1"></i>' . get_string('search', 'mediagallery'),
+        ['class' => 'btn btn-secondary']);
+
+    return $links;
+}
+
 
     /**
      * Render a sync link for an external service.
@@ -551,32 +638,62 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * @return array A list of actions.
      */
     protected function gallery_editing_actions_list($gallery) {
-        $additemurl = new moodle_url('/mod/mediagallery/item.php', array('g' => $gallery->id));
-        $addbulkitemurl = new moodle_url('/mod/mediagallery/item.php', array('g' => $gallery->id, 'bulk' => 1));
-        $viewurl = new moodle_url('/mod/mediagallery/view.php', array('g' => $gallery->id));
-        $editurl = new moodle_url('/mod/mediagallery/gallery.php', array('g' => $gallery->id));
-        $exporturl = new moodle_url('/mod/mediagallery/export.php', array('g' => $gallery->id));
-        $actions = array();
+    $additemurl = new moodle_url('/mod/mediagallery/item.php', ['g' => $gallery->id]);
+    $addbulkitemurl = new moodle_url('/mod/mediagallery/item.php', ['g' => $gallery->id, 'bulk' => 1]);
+    $viewurl = new moodle_url('/mod/mediagallery/view.php', ['g' => $gallery->id]);
+    $editurl = new moodle_url('/mod/mediagallery/gallery.php', ['g' => $gallery->id]);
+    $exporturl = new moodle_url('/mod/mediagallery/export.php', ['g' => $gallery->id]);
 
-        $maxitems = $gallery->get_collection()->maxitems;
-        if ($maxitems == 0 || count($gallery->get_items()) < $maxitems) {
-            $actions['add'] = $this->iconlink(get_string('addanitem', 'mediagallery'), $additemurl, 'plus');
-            if ($gallery->mode != 'youtube') {
-                $actions['addbulk'] = $this->iconlink(get_string('addbulkitems', 'mediagallery'), $addbulkitemurl, 'plus');
-            }
-        } else {
-            $actions['maxitems'] = html_writer::span(get_string('maxitemsreached', 'mediagallery'));
-        }
-        $actions['view'] = $this->iconlink(get_string('viewgallery', 'mediagallery'), $viewurl, 'eye');
-        if ($gallery->user_can_edit()) {
-            $actions['edit'] = $this->iconlink(get_string('editgallerysettings', 'mediagallery'), $editurl, 'pencil-square-o');
-        }
-        if ($gallery->mode == 'standard' && $gallery->user_can_edit(null, true)) {
-            $actions['export'] = $this->iconlink(get_string('exportgallery', 'mediagallery'), $exporturl, 'share');
-        }
+    $actions = [];
 
-        return $actions;
+    $maxitems = $gallery->get_collection()->maxitems;
+
+    if ($maxitems == 0 || count($gallery->get_items()) < $maxitems) {
+        $actions['add'] = html_writer::link(
+            $additemurl,
+            '<i class="fa fa-plus"></i> ' . get_string('addanitem', 'mediagallery'),
+            ['class' => 'btn btn-primary m-1']
+        );
+
+        if ($gallery->mode != 'youtube') {
+            $actions['addbulk'] = html_writer::link(
+                $addbulkitemurl,
+                '<i class="fa fa-plus"></i> ' . get_string('addbulkitems', 'mediagallery'),
+                ['class' => 'btn btn-secondary m-1']
+            );
+        }
+    } else {
+        $actions['maxitems'] = html_writer::span(
+            get_string('maxitemsreached', 'mediagallery'),
+            'text-muted'
+        );
     }
+
+    $actions['view'] = html_writer::link(
+        $viewurl,
+        '<i class="fa fa-eye"></i> ' . get_string('viewgallery', 'mediagallery'),
+        ['class' => 'btn btn-secondary m-1']
+    );
+
+    if ($gallery->user_can_edit()) {
+        $actions['edit'] = html_writer::link(
+            $editurl,
+            '<i class="fa fa-pencil-square-o"></i> ' . get_string('editgallerysettings', 'mediagallery'),
+            ['class' => 'btn btn-secondary m-1']
+        );
+    }
+
+    if ($gallery->mode == 'standard' && $gallery->user_can_edit(null, true)) {
+        $actions['export'] = html_writer::link(
+            $exporturl,
+            '<i class="fa fa-share"></i> ' . get_string('exportgallery', 'mediagallery'),
+            ['class' => 'btn btn-secondary m-1']
+        );
+    }
+
+    return $actions;
+}
+
 
     /**
      * Render an action icon.
