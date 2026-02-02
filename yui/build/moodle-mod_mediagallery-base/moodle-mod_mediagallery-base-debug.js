@@ -857,26 +857,26 @@ M.mod_mediagallery.dragdrop = {
         });
 
         // Drop logic
-Y.DD.DDM.on('drop:over', function(e) {
-    var drag = e.drag.get('node'),
-        drop = e.drop.get('node');
+        Y.DD.DDM.on('drop:over', function(e) {
+            var drag = e.drag.get('node'),
+                drop = e.drop.get('node');
 
-    if (drop.hasClass('card')) {
-        if (!goingUp) {
-            var next = drop.get('nextSibling');
-            if (next) {
-                drop = next;
-                drop.get('parentNode').insertBefore(drag, drop);
-            } else {
-                // last card, append to container
-                drop.get('parentNode').appendChild(drag);
+            if (drop.hasClass('card')) {
+                if (!goingUp) {
+                    var next = drop.get('nextSibling');
+                    if (next) {
+                        drop = next;
+                        drop.get('parentNode').insertBefore(drag, drop);
+                    } else {
+                        // last card, append to container
+                        drop.get('parentNode').appendChild(drag);
+                    }
+                } else {
+                    drop.get('parentNode').insertBefore(drag, drop);
+                }
+                e.drop.sizeShim();
             }
-        } else {
-            drop.get('parentNode').insertBefore(drag, drop);
-        }
-        e.drop.sizeShim();
-    }
-});
+        });
 
 
         // Ensure drag goes into container if not over a card
@@ -891,21 +891,48 @@ Y.DD.DDM.on('drop:over', function(e) {
     },
 
     save : function() {
-        var sortorder = Y.one(this.CSS.CONTAINER).get('children').getData('id');
+    
+
+        var container = Y.one(this.CSS.CONTAINER);
+        var cards = container.all('.card');
+        var sortorder = [];
+
+        cards.each(function(card, index) {
+            var id = card.getData('id');
+            if (id) {
+                sortorder.push(id);
+            } else {
+                console.warn('Missing data-id on card', card);
+            }
+        });
+
+        console.log('Final sortorder array:', sortorder);
         var params = {
             sesskey : M.cfg.sesskey,
-            data : sortorder,
+            data : sortorder.join(','),
             "class" : 'gallery',
             m : M.mod_mediagallery.base.mid,
             id : M.mod_mediagallery.base.gallery,
             action : 'sortorder'
         };
+
         Y.io(M.cfg.wwwroot + '/mod/mediagallery/rest.php', {
             method: 'POST',
             data: build_querystring(params),
-            context: this
+            on: {
+                success: function(id, response) {
+                    console.log(' Save success', response.responseText);
+                    console.groupEnd();
+                },
+                failure: function(id, response) {
+                    console.error(' Save failed', response);
+                    console.groupEnd();
+                }
+            }
         });
     }
+
+
 };
 
 

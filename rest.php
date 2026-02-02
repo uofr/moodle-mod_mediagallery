@@ -32,7 +32,14 @@ $class = required_param('class', PARAM_ALPHA);
 $m = required_param('m', PARAM_INT);
 $id = optional_param('id', 0, PARAM_INT);
 $action = optional_param('action', null, PARAM_ALPHAEXT);
-$data = optional_param_array('data', null, PARAM_RAW);
+// With this:
+$data = optional_param('data', '', PARAM_RAW); // get as string
+if (!empty($data)) {
+    $data = explode(',', $data); // convert CSV string to array
+    $data = array_map('intval', $data); // ensure integers
+} else {
+    $data = []; // fallback
+}
 
 $PAGE->set_url('/mod/mediagallery/rest.php', array('id' => $id, 'class' => $class, 'm' => $m));
 
@@ -78,8 +85,17 @@ switch($requestmethod) {
     break;
 
     case 'POST':
-        if ($action == 'sortorder') {
+    if ($action == 'sortorder') {
+            //Joel Dapiawen January 26,2026
+            // Make sure $data is an array.
+            if (is_string($data)) {
+                $data = explode(',', $data); // Convert CSV string to array
+            }
+            // Optional: cast to integers to be safe
+            $data = array_map('intval', $data);
             $object->update_sortorder($data);
+
+            echo json_encode(['status' => 'ok']); // give feedback to frontend
         } else if ($action == 'like' || $action == 'unlike') {
             $count = $object->$action();
             $info = new stdClass();
@@ -89,7 +105,7 @@ switch($requestmethod) {
             $info = $object->copy($data[0]);
             echo json_encode($info);
         }
-    break;
+        break;
 
     case 'DELETE':
         $success = false;

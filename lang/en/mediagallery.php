@@ -342,6 +342,7 @@ $string['visibleother_help'] = 'Define the gallery as visible to other users aft
 $string['you'] = 'you';
 $string['youmusttypedelete'] = 'You must type DELETE to confirm deletion.';
 $string['youtubeurl'] = 'YouTube URL';
+ //Joel Dapiawen January 26,2026
 $string['backtogalleries'] = 'Gallery collection';
 $string['backtoediting'] = 'Back to editing';
-
+$string['emptygallery'] = 'No items added yet. Drag media here or click "Add an item" to start.';

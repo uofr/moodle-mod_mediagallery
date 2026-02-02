@@ -579,22 +579,26 @@ class item extends base {
 
         return $info;
     }
-private function get_youtube_videoid() {
-    $id = null;
-    if ($this->record->externalurl) {
-        $url = $this->record->externalurl;
-        if (strpos($url, '#') !== false) {
-            $url = substr($url, 0, strpos($url, '#'));
+    private function get_youtube_videoid() {
+        $id = null;
+        if ($this->record->externalurl) {
+            $url = $this->record->externalurl;
+            if (strpos($url, '#') !== false) {
+                $url = substr($url, 0, strpos($url, '#'));
+            }
+             //Joel Dapiawen January 26,2026
+            // Updated regex to include /shorts/
+            preg_match('/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|embed\/|v\/|shorts\/))([^\?&"\'>]+)/', $url, $matches);
+            if (isset($matches[4])) {
+                $id = $matches[4];
+            }
         }
-
-        // Updated regex to include /shorts/
-        preg_match('/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|embed\/|v\/|shorts\/))([^\?&"\'>]+)/', $url, $matches);
-        if (isset($matches[4])) {
-            $id = $matches[4];
-        }
+        return $id;
     }
-    return $id;
-}
+     //Joel Dapiawen January 26,2026
+    public function youtube_videoid() {
+        return $this->get_youtube_videoid();
+    }
 
 
     public function get_source() {
@@ -668,6 +672,7 @@ private function get_youtube_videoid() {
         }
 
         // Improved regex to capture Shorts URLs and regular YouTube links.
+        //Joel Dapiawen January 26,2026
         preg_match(
             '/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/))([^\?&"\'>]+)/',
             $url,

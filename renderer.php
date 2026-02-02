@@ -103,17 +103,18 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
         ), 'moodle');
         $this->page->requires->string_for_js('thisdirection', 'core_langconfig');
 
-       // $canedit = $controller->gallery && $controller->gallery->user_can_contribute();
-        //if ($controller->gallery && $canedit) {
-          //  if (!$controller->options['editing']) {
-              //  $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id, 'editing' => 1));
+        $canedit = $controller->gallery && $controller->gallery->user_can_contribute();
+        if ($controller->gallery && $canedit) {
+             //Joel Dapiawen January 26,2026
+            if (!$controller->options['editing']) {
+                $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id, 'editing' => 1));
               //  $this->page->set_button($this->output->single_button($url, get_string('turneditingon', 'core', 'get')));
-         //   } else {
-              //  $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id));
-             //   $this->page->set_button($this->output->single_button($url, get_string('turneditingoff', 'core', 'get')));
-             //   $this->page->requires->yui_module('moodle-mod_mediagallery-dragdrop', 'M.mod_mediagallery.dragdrop.init');
-          //  }
-        //}
+            } else {
+                $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $controller->gallery->id));
+               // $this->page->set_button($this->output->single_button($url, get_string('turneditingoff', 'core', 'get')));
+                $this->page->requires->yui_module('moodle-mod_mediagallery-dragdrop', 'M.mod_mediagallery.dragdrop.init');
+            }
+        }
         return $this->output->header();
     }
 
@@ -195,47 +196,69 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * @param \mod_mediagallery\gallery $gallery
      * @return string
      */
-    public function gallery_list_item($gallery) {
-        global $COURSE, $DB, $USER;
-        $o = html_writer::start_tag('div',
-            array('class' => 'gallery_list_item', 'data-title' => $gallery->name, 'data-id' => $gallery->id));
+  public function gallery_list_item($gallery) {
+    global $COURSE, $DB, $USER;
 
-        $url = new moodle_url('/mod/mediagallery/view.php', array('g' => $gallery->id));
-        $img = html_writer::empty_tag('img', array('src' => $gallery->get_thumbnail()));
-        $link = html_writer::link($url, $img);
-        $o .= html_writer::tag('div', $link, array('class' => 'gthumbnail'));
-        $o .= html_writer::start_tag('div', array('class' => 'title'));
-        $o .= $this->output->heading(format_string($gallery->name), 6);
-		    
-        $gallerymeta = $gallery->get_metainfo();
-        $linkurl = new moodle_url('/user/profile.php', array('id' => $gallerymeta->userid));
-        
-        
-        
-        
-        if ($user = $DB->get_record('user', array('id' => $gallerymeta->userid), 'id, firstname, lastname')) $o .= html_writer::tag('div', $user->firstname.' '.$user->lastname, array('class' => 'gallery-username'));
-         
+    $o = html_writer::start_tag('div', [
+        'class' => 'gallery_list_item',
+        'data-title' => $gallery->name,
+        'data-id' => $gallery->id
+    ]);
 
-        $o .= html_writer::end_tag('div');
+    // Default thumbnail
+    $thumburl = $gallery->get_thumbnail();
 
-        $o .= html_writer::start_tag('div', array('class' => 'controls'));
+    // If YouTube gallery, replace with YouTube thumbnail
+    if ($gallery->mode === 'youtube') {
+        $items = $gallery->get_items();
+        if (!empty($items)) {
+            $firstitem = reset($items); // get first item
+            $ytid = null;
 
-        /*
-        $this->page->requires->yui_module('moodle-mod_mediagallery-base', 'M.mod_mediagallery.base.add_gallery_info_modal',
-            array($COURSE->id, $gallery->get_metainfo()), null, true);
-        $url = new moodle_url('/mod/mediagallery/gallery.php', array('g' => $gallery->id, 'action' => 'info'));
-        $o .= $this->output->action_icon($url, new pix_icon('i/info', get_string('information', 'mediagallery')), null,
-            array('class' => 'action-icon info'));
-          */  
-        
-        
-        $actions = $this->gallery_list_item_actions($gallery);
-        $o .= $this->action_menu($actions);
+            if (is_object($firstitem)) {
+                if (method_exists($firstitem, 'youtube_videoid')) {
+                    $ytid = $firstitem->youtube_videoid();
+                } elseif (isset($firstitem->youtubevideoid)) {
+                    $ytid = $firstitem->youtubevideoid;
+                }
+            } elseif (is_array($firstitem) && isset($firstitem['youtubevideoid'])) {
+                $ytid = $firstitem['youtubevideoid'];
+            }
 
-        $o .= html_writer::end_tag('div');
-        $o .= html_writer::end_tag('div');
-        return $o;
+            if (!empty($ytid)) {
+                $thumburl = "https://img.youtube.com/vi/$ytid/0.jpg";
+            }
+        }
     }
+
+    // Build thumbnail HTML
+    $url = new moodle_url('/mod/mediagallery/view.php', ['g' => $gallery->id]);
+    $img = html_writer::empty_tag('img', ['src' => $thumburl]);
+    $link = html_writer::link($url, $img);
+    $o .= html_writer::tag('div', $link, ['class' => 'gthumbnail']);
+
+    // Gallery title
+    $o .= html_writer::start_tag('div', ['class' => 'title']);
+    $o .= $this->output->heading(format_string($gallery->name), 6);
+
+    $gallerymeta = $gallery->get_metainfo();
+    if ($user = $DB->get_record('user', ['id' => $gallerymeta->userid], 'id, firstname, lastname')) {
+        $o .= html_writer::tag('div', $user->firstname . ' ' . $user->lastname, ['class' => 'gallery-username']);
+    }
+
+    $o .= html_writer::end_tag('div');
+
+    // Controls / actions
+    $o .= html_writer::start_tag('div', ['class' => 'controls']);
+    $actions = $this->gallery_list_item_actions($gallery);
+    $o .= $this->action_menu($actions);
+    $o .= html_writer::end_tag('div'); // controls
+
+    $o .= html_writer::end_tag('div'); // gallery_list_item
+
+    return $o;
+}
+
 
     /**
      * Render the action icons for a gallery.
@@ -338,7 +361,7 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
 
     /**
      * Render a gallery.
-     *
+     * Joel Dapiawen January 26,2026
      * @param rengallery $renderable Gallery renderable details.
      * @return string
      */
@@ -463,69 +486,46 @@ class mod_mediagallery_renderer extends plugin_renderer_base {
      * @param rengallery $renderable
      * @return string
      */
-   protected function gallery_viewing_page(rengallery $renderable) {
-    $o = '';
-
-    $items = $renderable->gallery->get_items();
-    if (empty($items)) {
-        $o .= get_string('noitemsadded', 'mediagallery');
-    } else if ($renderable->galleryview == gallery::VIEW_GRID) {
-        // Wrap grid items in a Bootstrap row
-        $o .= html_writer::start_div('gallery_items row g-3 ' . $renderable->mediasizeclass);
-        foreach ($items as $item) {
-            // Each item in a col + card
-            $o .= html_writer::start_div('col-sm-6 col-md-4 col-lg-3');
-            $o .= html_writer::start_div('card h-100');
-
-            // Thumbnail
-            $o .= html_writer::div(
-                html_writer::link('#', html_writer::empty_tag('img', [
-                    'src' => $item->get_image_url(),
-                    'class' => 'card-img-top img-fluid'
-                ])),
-                'gthumbnail'
-            );
-
-            // Title
-            $o .= html_writer::tag('div', html_writer::tag('h6', $item->get_title()), ['class' => 'card-body p-2']);
-
-            // Controls
-            $o .= html_writer::start_div('card-footer p-2');
-            $o .= $this->item_controls($item);
-            $o .= html_writer::end_div();
-
-            $o .= html_writer::end_div();
-            $o .= html_writer::end_div(); 
+    protected function gallery_viewing_page(rengallery $renderable) {
+        $o = html_writer::start_tag('div', array('class' => 'gallery'.$renderable->mediasizeclass));
+        $items = $renderable->gallery->get_items();
+        if (empty($items)) {
+            $o .= get_string('noitemsadded', 'mediagallery');
+        } else if ($renderable->galleryview == gallery::VIEW_GRID) {
+            $o .= $this->view_grid($renderable->gallery, $renderable->options);
+        } else {
+            $o .= $this->view_carousel($renderable->gallery, $renderable->options);
         }
-        $o .= html_writer::end_div(); 
-    } else {
-        $o .= $this->view_carousel($renderable->gallery, $renderable->options);
+        $o .= html_writer::end_tag('div');
+        if ($otheritems = $renderable->gallery->get_items_by_type(false)) {
+            $o .= $this->output->heading(get_string('otherfiles', 'mediagallery'), 3);
+            $o .= $this->list_other_items($otheritems, $renderable->gallery);
+        }
+        return $o;
     }
-
-    // Other items
-    if ($otheritems = $renderable->gallery->get_items_by_type(false)) {
-        $o .= $this->output->heading(get_string('otherfiles', 'mediagallery'), 3);
-        $o .= $this->list_other_items($otheritems, $renderable->gallery);
-    }
-
-    return $o;
-}
 
 
     /**
      * Render editing interface for a specific gallery.
-     *
+     * Joel Dapiawen January 26,2026
      * @param gallery $gallery The gallery to display.
      */
     public function gallery_editing_page(gallery $gallery) {
-          $o = html_writer::start_div('gallery_items editing');
-        foreach ($gallery->get_items() as $item) {
-                 $o .= html_writer::start_div('card');
-            $o .= $this->item_editing($item, $gallery);
-                  $o .= html_writer::end_div();
+        $o = html_writer::start_div('gallery_items editing');
+
+        $items = $gallery->get_items();
+        if (empty($items)) {
+        $o .= html_writer::tag('div', get_string('emptygallery', 'mod_mediagallery'),
+            ['class' => 'empty-gallery text-center text-muted py-3']);
+        } else {
+            foreach ($gallery->get_items() as $item) {
+                //   $o .= html_writer::start_div('card item');
+                $o .= $this->item_editing($item, $gallery);
+                //     $o .= html_writer::end_div();
+            }
+            $o .= html_writer::end_div();
+            return $o;
         }
-          $o .= html_writer::end_div();
-        return $o;
     }
 
     /**
@@ -647,7 +647,7 @@ public function collection_editing_actions_list(rencollection $renderable) {
     $actions = [];
 
     $maxitems = $gallery->get_collection()->maxitems;
-
+   //Joel Dapiawen January 26,2026
     if ($maxitems == 0 || count($gallery->get_items()) < $maxitems) {
         $actions['add'] = html_writer::link(
             $additemurl,
@@ -733,7 +733,8 @@ public function collection_editing_actions_list(rencollection $renderable) {
      */
     public function item_editing(item $item, $gallery) {
         global $USER;
-        $o = html_writer::start_tag('div', array('class' => 'item', 'data-id' => $item->id, 'data-title' => $item->caption));
+         //Joel Dapiawen January 26,2026
+        $o = html_writer::start_tag('div', array('class' => 'card item', 'data-id' => $item->id, 'data-title' => $item->caption));
 
         $img = html_writer::empty_tag('img', array('src' => $item->get_image_url_by_type('thumbnail')));
         $link = html_writer::link(null, $img);
