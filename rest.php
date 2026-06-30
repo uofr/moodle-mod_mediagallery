@@ -41,10 +41,15 @@ if (!empty($data)) {
     $data = []; // fallback
 }
 
-$PAGE->set_url('/mod/mediagallery/rest.php', array('id' => $id, 'class' => $class, 'm' => $m));
+$validclasses = ['item', 'gallery', 'collection'];
+if (!in_array($class, $validclasses, true)) {
+    throw new moodle_exception('invalidparameter', 'debug');
+}
 
-$mediagallery = $DB->get_record('mediagallery', array('id' => $m), '*', MUST_EXIST);
-$course = $DB->get_record('course', array('id' => $mediagallery->course), '*', MUST_EXIST);
+$PAGE->set_url('/mod/mediagallery/rest.php', ['id' => $id, 'class' => $class, 'm' => $m]);
+
+$mediagallery = $DB->get_record('mediagallery', ['id' => $m], '*', MUST_EXIST);
+$course = $DB->get_record('course', ['id' => $mediagallery->course], '*', MUST_EXIST);
 $cm = get_coursemodule_from_instance('mediagallery', $mediagallery->id, $course->id, false, MUST_EXIST);
 
 require_login($course, false, $cm);
@@ -58,10 +63,38 @@ $classname = "\\mod_mediagallery\\{$class}";
 
 if (!empty($id)) {
     $object = new $classname($id);
+
+    $belongs = false;
+    if ($class === 'collection') {
+        $belongs = ((int)$object->id === (int)$m);
+    } else if ($class === 'gallery') {
+        $belongs = ((int)$object->instanceid === (int)$m);
+    } else if ($class === 'item') {
+        $belongs = $DB->record_exists('mediagallery_gallery',
+            ['id' => $object->galleryid, 'instanceid' => $m]);
+    }
+    if (!$belongs) {
+        throw new moodle_exception('nopermissions', 'error', '', 'access ' . $class);
+    }
+}
+
+$context = context_module::instance($cm->id);
+
+$canview = true;
+if (!empty($id)) {
+    if ($class === 'gallery') {
+        $canview = $object->user_can_view();
+    } else if ($class === 'item') {
+        $itemgallery = new \mod_mediagallery\gallery($object->galleryid);
+        $canview = $itemgallery->user_can_view();
+    }
 }
 
 switch($requestmethod) {
     case 'GET':
+        if (in_array($action, ['socialinfo', 'embed', 'metainfo', 'get_sample_targets'], true) && !$canview) {
+            throw new moodle_exception('nopermissions', 'error', '', "view $class");
+        }
         if ($action == 'socialinfo') {
             $info = $object->get_socialinfo();
             echo json_encode($info);
@@ -81,11 +114,16 @@ switch($requestmethod) {
         } else if ($action == 'metainfo') {
             $info = $object->get_structured_metainfo();
             echo json_encode($info);
+        } else {
+            throw new moodle_exception('invalidaction', 'error');
         }
     break;
 
     case 'POST':
     if ($action == 'sortorder') {
+            if ($class !== 'gallery' || !$object->user_can_edit()) {
+                throw new moodle_exception('nopermissions', 'error', '', 'reorder items');
+            }
             //Joel Dapiawen January 26,2026
             // Make sure $data is an array.
             if (is_string($data)) {
@@ -97,13 +135,38 @@ switch($requestmethod) {
 
             echo json_encode(['status' => 'ok']); // give feedback to frontend
         } else if ($action == 'like' || $action == 'unlike') {
+            if ($class !== 'item' || !$canview) {
+                throw new moodle_exception('nopermissions', 'error', '', $action);
+            }
+            require_capability('mod/mediagallery:like', $context);
             $count = $object->$action();
             $info = new stdClass();
             $info->likes = $count;
             echo json_encode($info);
         } else if ($action == 'sample') {
-            $info = $object->copy($data[0]);
+            if ($class !== 'gallery' || !$canview) {
+                throw new moodle_exception('nopermissions', 'error', '', 'sample');
+            }
+            $targetid = isset($data[0]) ? (int)$data[0] : 0;
+            $targetmg = $DB->get_record('mediagallery', ['id' => $targetid]);
+            if (!$targetmg) {
+                throw new moodle_exception('invalidcoursemodule');
+            }
+            $targetcourse = $DB->get_record('course', ['id' => $targetmg->course], '*', MUST_EXIST);
+            require_login($targetcourse, false);
+
+            $targets = mediagallery_get_sample_targets($targetcourse, $object);
+            if (!isset($targets[$targetid])) {
+                throw new moodle_exception('nopermissions', 'error', '', 'sample target');
+            }
+            $targetcoll = new \mod_mediagallery\collection($targetid);
+            if (!$targetcoll->user_can_add_children()) {
+                throw new moodle_exception('nopermissions', 'error', '', 'add to target');
+            }
+            $info = $object->copy($targetid);
             echo json_encode($info);
+        } else {
+            throw new moodle_exception('invalidaction', 'error');
         }
         break;
 
